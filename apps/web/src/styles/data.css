@@ -1,0 +1,354 @@
+/* Tables, badges, filters and pagination for data pages */
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  background: var(--color-surface-muted);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover {
+  background: var(--color-surface-muted);
+}
+
+.table tfoot th,
+.table tfoot td {
+  border-top: 1px solid var(--color-border);
+  border-bottom: 0;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.table__numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table__secondary {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.table-message {
+  padding: 2rem 1rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Phones: each row becomes a card of "label: value" lines, so nothing scrolls sideways. */
+@media (max-width: 39.99rem) {
+  .table--stacked thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .table--stacked,
+  .table--stacked tbody,
+  .table--stacked tr,
+  .table--stacked td {
+    display: block;
+  }
+
+  .table--stacked tbody tr {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .table--stacked tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table--stacked tbody tr:hover {
+    background: none;
+  }
+
+  .table--stacked td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3125rem 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .table--stacked td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    color: var(--color-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .table--stacked td > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .table--stacked td[data-column='actions'] {
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .table--stacked td[data-column='actions']::before {
+    content: none;
+  }
+
+  .table--stacked .row-actions .button {
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+.text-link {
+  color: var(--color-accent-strong);
+  font-weight: 600;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge--ok {
+  background: rgb(22 163 74 / 0.12);
+  color: var(--color-ok);
+}
+
+.badge--warn {
+  background: var(--color-accent-soft);
+  color: var(--color-warn);
+}
+
+.badge--error {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+}
+
+.badge--neutral {
+  background: var(--color-surface-muted);
+  color: var(--color-muted);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.filters.card {
+  padding: 1rem;
+}
+
+.filters .field {
+  flex: 1 1 14rem;
+}
+
+.filters .field--narrow {
+  flex: 0 1 12rem;
+}
+
+@media (max-width: 39.99rem) {
+  .filters .field--narrow,
+  .filters__submit {
+    flex: 1 1 100%;
+  }
+}
+
+@media (min-width: 64rem) {
+  .filters.card {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.pagination__summary {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.pagination__buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+}
+
+.contact-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-list__name {
+  font-weight: 600;
+}
+
+.totals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+}
+
+.total {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.total__label {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.total__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.total__value--negative,
+.amount--negative {
+  color: var(--color-error);
+}
+
+/* Stat cards */
+
+.stat-card {
+  --stat-accent: var(--color-muted);
+
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 1rem 1.125rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-card--positive {
+  --stat-accent: var(--color-ok);
+}
+
+.stat-card--negative {
+  --stat-accent: var(--color-error);
+}
+
+.stat-card--warn {
+  --stat-accent: var(--color-warn);
+}
+
+.stat-card--info {
+  --stat-accent: var(--color-info);
+}
+
+.stat-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.stat-card__label {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.stat-card__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--stat-accent) 12%, transparent);
+  color: var(--stat-accent);
+}
+
+.stat-card__value {
+  overflow-wrap: anywhere;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card__hint {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+@media (min-width: 48rem) {
+  .stat-card__value {
+    font-size: 1.5rem;
+  }
+}

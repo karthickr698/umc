@@ -1,0 +1,25 @@
+---
+description: Frontend conventions for the React + Vite web app
+globs: apps/web/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Web (`apps/web`)
+
+## Structure
+
+- `src/main.tsx` – entry point; `src/App.tsx` – root component
+- `src/lib/` – framework-agnostic helpers (`api-client.ts` is the only place that calls `fetch`)
+- `src/hooks/` – reusable hooks (`use-*.ts`)
+- `src/components/` – shared presentational components
+- `src/features/<feature>/` – feature-scoped components, hooks and API calls
+- `src/styles/` – global CSS
+
+## Rules
+
+- Function components and hooks only; named exports (no default exports except where a tool requires it).
+- Import app code via the `@/` alias (maps to `src/`); import shared contracts from `@umc/shared`.
+- All HTTP calls go through `apiRequest` in `src/lib/api-client.ts`, typed with DTOs from `@umc/shared`. Requests use relative `/api` paths (proxied to the API by Vite in dev).
+- Only `VITE_`-prefixed env vars reach the browser; declare them in `src/vite-env.d.ts` and `.env.example`. Never put secrets in them.
+- Follow the Rules of Hooks; effects that fetch must handle cleanup via `AbortController`.
+- Keep components accessible: semantic HTML, labelled inputs, `aria-live` for async status.

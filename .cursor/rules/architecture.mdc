@@ -1,0 +1,26 @@
+---
+description: Modular architecture, code reuse, and secret handling across the monorepo
+alwaysApply: true
+---
+
+# Architecture & reuse
+
+## Modularity
+
+- API is organised by layer (`apps/api/src/{routes,controllers,services,repositories,models,validators}/`) with one `<feature>.<layer>.ts` file per feature in each. Web is organised by feature: `apps/web/src/features/<feature>/`. Cross-cutting code goes in `utils/`, `lib/`, `hooks/`, `components/`, or `middlewares/`.
+- One responsibility per file. Split files that grow past ~200 lines or mix concerns.
+- Features must not reach into another feature's internals; import only what the other feature exports, or move the shared piece up to a common folder or `@umc/shared`.
+- Dependencies point one way: routes → controller → service → repository → model. Never import upward.
+
+## Reuse over duplication
+
+- Before writing a helper, hook, component, schema, or type, search for an existing one and extend it.
+- If the same logic appears a second time, extract it. Contracts used by both apps go in `@umc/shared`.
+- Constants (route paths, error codes, enums, limits) are defined once — never repeat string literals.
+
+## Secrets
+
+- Secrets live only in git-ignored `.env` files; add a placeholder to the matching `.env.example`.
+- API reads config only via `env` from `src/config/env.ts` (Zod-validated). Add new vars to its schema.
+- Never hardcode credentials, tokens, or connection strings, and never log them, return them in responses, or put them in `VITE_*` vars (those are shipped to the browser).
+- Never return sensitive model fields (e.g. password hashes, tokens) — exclude them with `select: false` and in DTO mapping.

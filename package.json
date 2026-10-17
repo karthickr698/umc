@@ -1,0 +1,54 @@
+{
+  "name": "umc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Construction management platform monorepo",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "npm run build:shared && concurrently -k -n shared,api,web -c magenta,blue,green \"npm:dev:shared\" \"npm run dev -w @umc/api\" \"npm run dev -w @umc/web\"",
+    "dev:api": "npm run build:shared && npm run dev -w @umc/api",
+    "dev:web": "npm run build:shared && npm run dev -w @umc/web",
+    "dev:shared": "npm run dev -w @umc/shared",
+    "build": "npm run build:shared && npm run build -w @umc/api && npm run build -w @umc/web",
+    "build:shared": "npm run build -w @umc/shared",
+    "build:api": "npm run build:shared && npm run build -w @umc/api",
+    "build:web": "npm run build:shared && npm run build -w @umc/web",
+    "start:api": "npm run start -w @umc/api",
+    "preview:web": "npm run preview -w @umc/web",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "test": "npm run build:shared && npm run test --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "db:up": "docker compose up -d mongo",
+    "db:down": "docker compose down",
+    "db:sync-indexes": "npm run db:sync-indexes -w @umc/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^20.19.43",
+    "concurrently": "^9.2.4",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.9",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1"
+  },
+  "overrides": {
+    "shell-quote": "^1.11.0"
+  }
+}

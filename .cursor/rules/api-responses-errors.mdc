@@ -1,0 +1,38 @@
+---
+description: Consistent API response envelope and error handling (API and web client)
+globs: apps/api/src/**/*.ts,apps/web/src/lib/**/*.ts,apps/web/src/features/**/*.ts
+alwaysApply: false
+---
+
+# Responses & errors
+
+## Response envelope (`@umc/shared`)
+
+- Success: `{ success: true, data, meta }` typed as `ApiSuccess<T>`, sent only via `sendSuccess(res, data, status?)`. Lists: `ApiSuccess<Paginated<T>>`.
+- Failure: `{ success: false, error: { code, message, details? }, meta }` — produced **only** by `middlewares/error-handler.ts` (via `sendFailure`).
+- `meta` is `{ timestamp, requestId }`; `requestId` matches the `X-Request-Id` header and the request's log lines.
+- `VALIDATION_ERROR` always carries `details: ValidationIssue[]` (`{ path, message, code? }`).
+- Status codes: 200 read/update, 201 create, 204 delete (no body), 4xx client error, 5xx server error.
+- Never send raw documents, bare arrays, or ad-hoc shapes.
+
+## API error handling
+
+- Expected failures: `throw ApiError.notFound(...)` / `.badRequest` / `.validation(issues)` / `.conflict` / `.serviceUnavailable` / etc. (`utils/api-error.ts`). Add new codes to `ERROR_CODES` in `@umc/shared`, not as string literals.
+- Just throw library errors — `normalizeError()` already maps them: `ZodError` and Mongoose `ValidationError`/`CastError`/`StrictModeError` → 400, `DocumentNotFoundError` (`.orFail()`) → 404, duplicate key / `VersionError` → 409, MongoDB connection failures → 503, body-parser errors → 400/413, anything else → generic 500. To support a new library error, add a mapper in `utils/` and chain it in `normalize-error.ts`.
+- Express 5 forwards async rejections — no `try/catch` just to call `next(err)`.
+- Only catch when you can recover or add context; rethrow otherwise. Never swallow errors with an empty `catch`.
+- Never leak internals: no stack traces, query details, or secrets in production responses (the error handler already enforces this — don't bypass it).
+- Log with `req.log` / `logger` (pino), never `console.*`.
+
+```ts
+// ❌
+if (!project) return res.status(404).json({ error: 'not found' });
+
+// ✅
+if (!project) throw ApiError.notFound('Project not found');
+```
+
+## Web client
+
+- Call the API only via `apiRequest<T>()`; it unwraps `data` and throws `ApiClientError` with the server `code`, `details` and `requestId`.
+- Handle loading, error, and empty states in the UI; show `error.message`, branch on `error.code`.

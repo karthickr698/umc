@@ -1,0 +1,31 @@
+---
+description: Monorepo structure, tooling and conventions for the UMC construction management app
+alwaysApply: true
+---
+
+# UMC monorepo
+
+Construction management application. npm workspaces monorepo, TypeScript everywhere, ESM only (`"type": "module"`).
+
+## Layout
+
+- `apps/web` – React + Vite SPA (`@umc/web`)
+- `apps/api` – Express REST API with MongoDB/Mongoose (`@umc/api`)
+- `packages/shared` – types and constants shared by both apps (`@umc/shared`)
+
+## Commands (run from repo root)
+
+- `npm run dev` – shared (watch) + api + web together
+- `npm run dev:api` / `npm run dev:web` – run one app on its own
+- `npm run build`, `npm run typecheck`, `npm run lint`, `npm run test`, `npm run format`
+- Add a dependency to a workspace: `npm i <pkg> -w @umc/api` (never `cd` into the app and install)
+
+## Conventions
+
+- Strict TypeScript; no `any` unless justified. Prefer `unknown` + narrowing.
+- Use `import type` / inline `type` modifiers for type-only imports.
+- Anything used by both the web and API (DTO types, enums, constants, route paths) belongs in `@umc/shared`. Never import from `apps/*` into another app.
+- `@umc/shared` must stay runtime-agnostic: no Node, DOM, Express, Mongoose or React imports.
+- Files and folders use kebab-case; React components use PascalCase exports.
+- API responses use the `ApiResponse<T>` envelope from `@umc/shared`.
+- Keep secrets in `.env` files (git-ignored); document every variable in the matching `.env.example`.

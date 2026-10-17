@@ -1,0 +1,28 @@
+---
+description: Strict TypeScript standards for all TS/TSX code
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript
+
+`tsconfig.base.json` enables `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `noUnused*`. Never weaken these per-package or per-file.
+
+- No `any`. Use `unknown` and narrow (`instanceof`, `in`, Zod `parse`). If truly unavoidable, add an `eslint-disable-next-line` with a reason.
+- No `@ts-ignore`; `@ts-expect-error` only with an explanatory comment.
+- No non-null assertions (`!`) to silence errors — handle the `undefined` case.
+- Type-only imports use `import type` or inline `type` (required by `verbatimModuleSyntax`).
+- Derive types instead of duplicating them: `z.infer<typeof schema>`, `typeof X[keyof typeof X]`, `Pick`/`Omit` on shared DTOs.
+- Prefer `interface` for object shapes, `type` for unions/compositions; `as const` objects over `enum`.
+- Explicit return types on exported functions and service/repository methods.
+- Avoid `as` casts except at trusted boundaries (e.g. parsed JSON already validated).
+
+```ts
+// ❌
+function load(id: any) { return cache[id]!; }
+
+// ✅
+function load(id: string): Project | undefined {
+  return cache[id];
+}
+```

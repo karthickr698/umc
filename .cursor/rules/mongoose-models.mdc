@@ -1,0 +1,37 @@
+---
+description: Mongoose model definition conventions
+globs: apps/api/**/*.model.ts,apps/api/**/*.repository.ts
+alwaysApply: false
+---
+
+# Mongoose models
+
+- One model per `<feature>.model.ts`. Only repositories import models.
+- Define a TS interface for the document shape and pass it to `Schema<T>` / `model<T>`; derive the doc type with `HydratedDocument<T>` when needed.
+- Always `{ timestamps: true }`. Mark fields `required`, `trim`, `enum` (from `@umc/shared` constants), `min`/`max` as appropriate.
+- Declare indexes explicitly (`schema.index(...)`), including `unique` constraints.
+- Sensitive fields use `select: false`.
+- Read-only queries use `.lean()`; paginate with `skip`/`limit` + `countDocuments` and return `Paginated<T>`.
+- Guard against re-compilation in watch/test mode.
+
+```ts
+export interface Project {
+  name: string;
+  code: string;
+  status: ProjectStatus;
+}
+
+const projectSchema = new Schema<Project>(
+  {
+    name: { type: String, required: true, trim: true },
+    code: { type: String, required: true, trim: true, uppercase: true },
+    status: { type: String, enum: Object.values(PROJECT_STATUS), default: PROJECT_STATUS.ACTIVE },
+  },
+  { timestamps: true },
+);
+
+projectSchema.index({ code: 1 }, { unique: true });
+
+export const ProjectModel: Model<Project> =
+  (models.Project as Model<Project> | undefined) ?? model<Project>('Project', projectSchema);
+```

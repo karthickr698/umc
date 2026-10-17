@@ -1,0 +1,388 @@
+/* Work schedule: month calendar beside the day's roster of workers, plus drawer contents */
+
+.schedule {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.schedule__layout {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 72rem) {
+  .schedule__layout--calendar {
+    grid-template-columns: minmax(20rem, 2fr) minmax(0, 3fr);
+  }
+
+  .schedule__layout--calendar .month-calendar {
+    position: sticky;
+    top: calc(var(--top-nav-height) + 1rem);
+  }
+}
+
+.schedule__roster {
+  min-width: 0;
+}
+
+/* Toolbar */
+
+.schedule-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.schedule-toolbar__fields {
+  display: flex;
+  flex: 1 1 32rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.schedule-toolbar__fields .field {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+
+.schedule-toolbar__views .segmented__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Month calendar */
+
+.month-calendar__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.month-calendar__grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0.25rem;
+  table-layout: fixed;
+}
+
+.month-calendar__grid th {
+  padding-bottom: 0.25rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.month-calendar__grid td {
+  padding: 0;
+}
+
+.month-calendar__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--transition),
+    border-color var(--transition);
+}
+
+.month-calendar__day:hover {
+  border-color: #cbd5e1;
+  background: var(--color-surface-muted);
+}
+
+.month-calendar__day--weekend {
+  background: var(--color-bg);
+}
+
+.month-calendar__day--outside {
+  opacity: 0.45;
+}
+
+.month-calendar__day--today .month-calendar__number {
+  color: var(--color-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.month-calendar__day[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.month-calendar__number {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.month-calendar__count {
+  min-width: 1.5rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: rgb(22 163 74 / 0.12);
+  color: var(--color-ok);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
+.month-calendar__count--empty {
+  background: none;
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.month-calendar[aria-busy='true'] .month-calendar__count {
+  opacity: 0.5;
+}
+
+/* Roster */
+
+.roster {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.roster__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.roster__count {
+  margin-left: 0.375rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.roster__search {
+  position: relative;
+  flex: 0 1 16rem;
+}
+
+.roster__search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  color: var(--color-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.roster__search-input {
+  min-height: 2.25rem;
+  padding-left: 2.25rem;
+  font-size: 0.875rem;
+}
+
+.roster__table {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.roster__table .table th,
+.roster__table .table td {
+  padding: 0.625rem 0.75rem;
+  vertical-align: middle;
+}
+
+.section-card[aria-busy='true'] .roster__table {
+  opacity: 0.6;
+}
+
+.roster-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.roster-state__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: currentcolor;
+}
+
+/* A coloured edge makes each worker's state scannable down the list. */
+.roster-row td:first-child {
+  box-shadow: inset 3px 0 0 var(--roster-edge, transparent);
+}
+
+.roster-row--assigned {
+  --roster-edge: var(--color-ok);
+}
+
+.roster-row--unassigned {
+  --roster-edge: var(--color-warn);
+}
+
+.roster-row--elsewhere {
+  --roster-edge: var(--color-border);
+}
+
+.roster-row--elsewhere .roster-row__name,
+.roster-row--elsewhere .roster-row__site {
+  color: var(--color-muted);
+}
+
+.roster-row__worker {
+  display: grid;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.roster-row__worker:hover .roster-row__name {
+  color: var(--color-accent-strong);
+  text-decoration: underline;
+}
+
+.roster-row__name {
+  font-weight: 600;
+}
+
+.roster-row__site {
+  display: block;
+}
+
+.roster-row__assignment--cancelled .roster-row__site {
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.roster-row__actions {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Worker details drawer */
+
+.worker-details {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.worker-details__section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.worker-details__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.worker-details__subheading {
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.worker-details__day {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.worker-details__day-text {
+  display: grid;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.worker-details__site {
+  font-weight: 600;
+}
+
+.worker-details__loading {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.worker-details__empty {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.assignment-history {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  list-style: none;
+}
+
+.assignment-history__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.assignment-history__item:last-child {
+  border-bottom: 0;
+}
+
+.assignment-history__item--current {
+  background: var(--color-accent-soft);
+}
+
+.assignment-history__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.assignment-history__date {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.assignment-history__edit {
+  width: 2rem;
+  height: 2rem;
+}

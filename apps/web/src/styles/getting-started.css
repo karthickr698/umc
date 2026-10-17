@@ -1,0 +1,137 @@
+/* Dashboard "Getting started" checklist */
+
+.getting-started {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-color: var(--color-accent);
+  background: linear-gradient(180deg, var(--color-accent-soft), var(--color-surface) 7rem);
+}
+
+.getting-started__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.getting-started__title {
+  font-size: 1.125rem;
+}
+
+.getting-started__subtitle {
+  margin-top: 0.125rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.getting-started__progress {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+}
+
+.getting-started__progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-ok);
+  transition: width 300ms ease;
+}
+
+.getting-started__steps {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem 0.875rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.setup-step > .button {
+  grid-column: 1 / -1;
+}
+
+.setup-step--current {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgb(245 158 11 / 0.18);
+}
+
+.setup-step--done {
+  background: var(--color-surface-muted);
+}
+
+.setup-step__marker {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--color-surface-muted);
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.setup-step--current .setup-step__marker {
+  background: var(--color-accent);
+  color: #1c1917;
+}
+
+.setup-step--done .setup-step__marker {
+  background: var(--color-ok);
+  color: #fff;
+}
+
+.setup-step__text {
+  display: grid;
+  min-width: 0;
+}
+
+.setup-step__title {
+  font-weight: 600;
+}
+
+.setup-step--done .setup-step__title {
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.setup-step__hint {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+/* Done and upcoming steps only show their button on wider screens, keeping the phone list short. */
+.setup-step:not(.setup-step--current) > .button {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .getting-started {
+    padding: 1.5rem;
+  }
+
+  .setup-step {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 0.75rem 1rem;
+  }
+
+  .setup-step > .button {
+    grid-column: auto;
+  }
+
+  .setup-step:not(.setup-step--current) > .button {
+    display: inline-flex;
+  }
+}

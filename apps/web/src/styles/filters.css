@@ -1,0 +1,68 @@
+/* Collapsible filter panel */
+
+.filter-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.filter-panel__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.filter-panel__title {
+  display: none;
+  font-size: 1rem;
+}
+
+.filter-panel__chevron {
+  transition: transform var(--transition);
+}
+
+.filter-panel--open .filter-panel__chevron {
+  transform: rotate(180deg);
+}
+
+.filter-panel__fields {
+  display: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.filter-panel--open .filter-panel__fields {
+  display: grid;
+}
+
+/* Lets the three date fields join the panel grid as separate cells. */
+.date-range-filter {
+  display: contents;
+}
+
+@media (min-width: 64rem) {
+  .filter-panel {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .filter-panel__title {
+    display: block;
+  }
+
+  .filter-panel__toggle {
+    display: none;
+  }
+
+  .filter-panel__fields {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 80rem) {
+  .filter-panel__fields {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}

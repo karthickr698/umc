@@ -1,0 +1,27 @@
+---
+description: Backend conventions for the Express + Mongoose API
+globs: apps/api/**/*.ts
+alwaysApply: false
+---
+
+# API (`apps/api`)
+
+## Structure
+
+- `src/server.ts` – process bootstrap only (DB connect, listen, graceful shutdown)
+- `src/app.ts` – `createApp()` builds the Express app without side effects (used by tests)
+- `src/config/` – `env.ts` (Zod-validated env; read config only via `env`, never `process.env`), `logger.ts` (pino), `database.ts` (Mongoose connection)
+- `src/middlewares/` – cross-cutting middleware; `not-found.ts` then `error-handler.ts` must stay last
+- `src/routes/` – `<feature>.routes.ts` routers; `index.ts` mounts them under `/api`
+- `src/controllers/<feature>.controller.ts`, `src/services/<feature>.service.ts`, `src/repositories/<feature>.repository.ts`, `src/models/<feature>.model.ts`, `src/validators/<feature>.validator.ts` (Zod schemas)
+- `src/utils/` – `ApiError`, `sendSuccess()`, `normalizeError()` (+ Zod/Mongoose error mappers) and other generic helpers
+- `src/types/` – API-only types (shared contracts go in `@umc/shared`)
+
+## Rules
+
+- NodeNext ESM: relative imports MUST include the `.js` extension (`./app.js`).
+- Layering and Zod validation: see `api-layers.mdc`. Models: see `mongoose-models.mdc`. Responses and errors: see `api-responses-errors.mdc`.
+- Log with `req.log` inside requests and `logger` elsewhere; never `console.log`.
+- Every business endpoint requires authentication: mount its router under its own prefix behind `authenticate` in `routes/index.ts` (`apiRouter.use(API_ROUTES.projects, authenticate, projectRouter)`). Read the caller with `getAuthUser(req)` and scope queries by its `companyId`. Only health and login/refresh/logout are public.
+- Every new endpoint gets a Vitest + Supertest test in `tests/`.
+- Every new or changed endpoint is mirrored in the Postman collection: see `postman-collection.mdc`.

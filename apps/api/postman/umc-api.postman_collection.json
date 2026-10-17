@@ -1,0 +1,3149 @@
+{
+  "info": {
+    "name": "UMC API",
+    "description": "UMC Construction Management REST API.\n\n1. Select the **UMC Local** environment and fill in `email` / `password`.\n2. Run **Auth → Login**; it stores the access token in `{{accessToken}}`, which every request uses as its Bearer token. The refresh token is kept by Postman's cookie jar for **Refresh** and **Logout**.\n3. Each **Create** request stores the new id (e.g. `{{clientId}}`) for the Get / Update / Delete requests.\n\nResponses use the `{ success, data, meta }` envelope; failures are `{ success: false, error: { code, message, details? }, meta }`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "companyId",
+      "value": ""
+    },
+    {
+      "key": "clientId",
+      "value": ""
+    },
+    {
+      "key": "siteId",
+      "value": ""
+    },
+    {
+      "key": "employeeId",
+      "value": ""
+    },
+    {
+      "key": "contractorId",
+      "value": ""
+    },
+    {
+      "key": "contractorEmployeeId",
+      "value": ""
+    },
+    {
+      "key": "workAssignmentId",
+      "value": ""
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    },
+    {
+      "key": "invoiceId",
+      "value": ""
+    },
+    {
+      "key": "expenseId",
+      "value": ""
+    },
+    {
+      "key": "clientPaymentId",
+      "value": ""
+    },
+    {
+      "key": "attachmentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Public.",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "ready"]
+            },
+            "description": "Returns 503 when MongoDB is unreachable.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Register, login, refresh and logout are public; Me requires a Bearer token.",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Self-service sign-up. Creates a new company and its first user with the OWNER role (the role cannot be chosen), then signs them in: returns 201 with `{ accessToken, tokenType, expiresIn, user }` and sets the `umc_refresh_token` httpOnly cookie. 409 when the email is already registered. Saves the access token into `{{accessToken}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Builders\",\n  \"name\": \"Asha Rao\",\n  \"email\": \"{{email}}\",\n  \"phone\": \"+91 98765 43210\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success) {",
+                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Returns `{ accessToken, tokenType, expiresIn, user }` and sets the `umc_refresh_token` httpOnly cookie. Saves the access token into `{{accessToken}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success) {",
+                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Uses the `umc_refresh_token` cookie (sent automatically from the cookie jar). Rotates the cookie and saves the new access token.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success) {",
+                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Revokes the refresh token cookie. Returns 204.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 204) {",
+                  "  pm.collectionVariables.set('accessToken', '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "Public: called by Meta, authenticated by signature instead of a session. Enabled only when WHATSAPP_PROVIDER=meta and WHATSAPP_APP_SECRET is set (404 otherwise). Configure the callback URL <API>/api/webhooks/whatsapp in the Meta App Dashboard and subscribe to the messages field.",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Verify WhatsApp webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=&hub.challenge=1158201444",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "whatsapp"],
+              "query": [
+                {
+                  "key": "hub.mode",
+                  "value": "subscribe"
+                },
+                {
+                  "key": "hub.verify_token",
+                  "value": "",
+                  "description": "Must equal WHATSAPP_WEBHOOK_VERIFY_TOKEN"
+                },
+                {
+                  "key": "hub.challenge",
+                  "value": "1158201444"
+                }
+              ]
+            },
+            "description": "Meta subscription handshake: answers the challenge as text/plain; 403 when the token does not match."
+          }
+        },
+        {
+          "name": "Receive WhatsApp status webhook",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Hub-Signature-256",
+                "value": "sha256=",
+                "description": "HMAC-SHA256 of the exact body with WHATSAPP_APP_SECRET, hex encoded"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/whatsapp",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "whatsapp"]
+            },
+            "description": "Applies message status updates (sent, delivered, read, failed) to the invoice that sent the message; statuses never move backwards. 401 when the signature is invalid. Returns { updates } with the number of status updates found.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"object\": \"whatsapp_business_account\",\n  \"entry\": [\n    {\n      \"id\": \"WHATSAPP_BUSINESS_ACCOUNT_ID\",\n      \"changes\": [\n        {\n          \"field\": \"messages\",\n          \"value\": {\n            \"messaging_product\": \"whatsapp\",\n            \"metadata\": {\n              \"display_phone_number\": \"15550000000\",\n              \"phone_number_id\": \"123456789012345\"\n            },\n            \"statuses\": [\n              {\n                \"id\": \"wamid.HBgMOTE5ODc2NTQzMjEwFQIAERgSQUJDREVGMTIzNDU2Nzg5MAA=\",\n                \"status\": \"delivered\",\n                \"timestamp\": \"1791370800\",\n                \"recipient_id\": \"919876543210\"\n              }\n            ]\n          }\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER; manage: OWNER, ADMIN (non-owners can only manage roles below their own).",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "role",
+                  "value": "STAFF",
+                  "description": "OWNER | ADMIN | MANAGER | STAFF",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "ACTIVE | INACTIVE",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Saves the new id into `{{userId}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ravi Kumar\",\n  \"email\": \"ravi.kumar@example.com\",\n  \"phone\": \"+91 98765 43210\",\n  \"password\": \"ChangeMe123!\",\n  \"role\": \"STAFF\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('userId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update user",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "All fields optional, but at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ravi K\",\n  \"phone\": \"+91 98765 00000\",\n  \"role\": \"MANAGER\",\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER, STAFF; manage: OWNER, ADMIN, MANAGER.",
+      "item": [
+        {
+          "name": "List clients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/clients?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "ACTIVE | INACTIVE",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "acme",
+                  "description": "Free-text search, max 100 chars",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients"]
+            },
+            "description": "Saves the new id into `{{clientId}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Builders\",\n  \"phone\": \"+91 80 1234 5678\",\n  \"email\": \"contact@acme.example.com\",\n  \"address\": {\n    \"line1\": \"12 MG Road\",\n    \"line2\": \"Near City Mall\",\n    \"city\": \"Bengaluru\",\n    \"state\": \"Karnataka\",\n    \"postalCode\": \"560001\",\n    \"country\": \"India\"\n  },\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('clientId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get client",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/clients/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients", "{{clientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update client",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients", "{{clientId}}"]
+            },
+            "description": "All fields optional, but at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+91 80 8765 4321\",\n  \"status\": \"INACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete client",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/clients/{{clientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients", "{{clientId}}"]
+            },
+            "description": "Returns 204 with no body. 409 while the client still has sites or client payments."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sites",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER, STAFF; manage: OWNER, ADMIN, MANAGER.",
+      "item": [
+        {
+          "name": "List sites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sites?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["sites"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "PLANNED | ACTIVE | ON_HOLD | COMPLETED | CANCELLED",
+                  "disabled": true
+                },
+                {
+                  "key": "clientId",
+                  "value": "{{clientId}}",
+                  "description": "Client ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "tower",
+                  "description": "Free-text search, max 100 chars",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create site",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sites",
+              "host": ["{{baseUrl}}"],
+              "path": ["sites"]
+            },
+            "description": "The site code is assigned by the server (SITE-0001, SITE-0002, … per company). Saves the new id into `{{siteId}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Green Tower\",\n  \"clientId\": \"{{clientId}}\",\n  \"address\": {\n    \"line1\": \"12 MG Road\",\n    \"line2\": \"Near City Mall\",\n    \"city\": \"Bengaluru\",\n    \"state\": \"Karnataka\",\n    \"postalCode\": \"560001\",\n    \"country\": \"India\"\n  },\n  \"status\": \"PLANNED\",\n  \"startDate\": \"2026-10-07\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('siteId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get site",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sites/{{siteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sites", "{{siteId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update site",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sites/{{siteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sites", "{{siteId}}"]
+            },
+            "description": "All fields optional, but at least one is required. Changing clientId is refused with 409 while the site has client payments from its current client.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"startDate\": \"2026-11-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete site",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sites/{{siteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["sites", "{{siteId}}"]
+            },
+            "description": "Returns 204 with no body. 409 while the site still has work assignments, payments, expenses or client payments."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER; manage: OWNER, ADMIN, MANAGER.",
+      "item": [
+        {
+          "name": "List employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/employees?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "ACTIVE | INACTIVE",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "suresh",
+                  "description": "Free-text search, max 100 chars",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees"]
+            },
+            "description": "employeeCode is optional; when omitted the server assigns the next free one (EMP-0001, EMP-0002, … per company). Saves the new id into `{{employeeId}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Suresh Patel\",\n  \"phone\": \"+91 90000 11111\",\n  \"employeeCode\": \"EMP-001\",\n  \"role\": \"Mason\",\n  \"dailyRate\": 850,\n  \"status\": \"ACTIVE\",\n  \"notes\": \"Joined for Green Tower\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('employeeId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get employee",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{employeeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update employee",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{employeeId}}"]
+            },
+            "description": "All fields optional, but at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dailyRate\": 900.5,\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete employee",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees", "{{employeeId}}"]
+            },
+            "description": "Returns 204 with no body. 409 while the employee still has work assignments or payments."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contractors",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER, STAFF; manage: OWNER, ADMIN, MANAGER.",
+      "item": [
+        {
+          "name": "List contractors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contractors?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractors"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "ACTIVE | INACTIVE",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "ELECTRICIAN",
+                  "description": "ELECTRICIAN | PLUMBER | TILES | CARPENTER | PAINTER | OTHER",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "spark",
+                  "description": "Free-text search, max 100 chars",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create contractor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractors",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractors"]
+            },
+            "description": "Saves the new id into `{{contractorId}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Spark Electricals\",\n  \"phone\": \"+91 91234 56789\",\n  \"email\": \"spark@example.com\",\n  \"category\": \"ELECTRICIAN\",\n  \"address\": {\n    \"line1\": \"12 MG Road\",\n    \"line2\": \"Near City Mall\",\n    \"city\": \"Bengaluru\",\n    \"state\": \"Karnataka\",\n    \"postalCode\": \"560001\",\n    \"country\": \"India\"\n  },\n  \"status\": \"ACTIVE\",\n  \"notes\": \"Preferred vendor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('contractorId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get contractor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contractors/{{contractorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractors", "{{contractorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update contractor",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractors/{{contractorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractors", "{{contractorId}}"]
+            },
+            "description": "All fields optional, but at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"OTHER\",\n  \"status\": \"INACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete contractor",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contractors/{{contractorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractors", "{{contractorId}}"]
+            },
+            "description": "Returns 204 with no body. 409 while the contractor still has contractor employees."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contractor Employees",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER; manage: OWNER, ADMIN, MANAGER.",
+      "item": [
+        {
+          "name": "List contractor employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contractor-employees?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractor-employees"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "ACTIVE | INACTIVE",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "anil",
+                  "description": "Free-text search, max 100 chars",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create contractor employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractor-employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractor-employees"]
+            },
+            "description": "employeeCode and dailyRate are optional: without a code the server assigns the contractor's next free one (CW-0001, CW-0002, …); dailyRate defaults to 0. Saves the new id into `{{contractorEmployeeId}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractorId\": \"{{contractorId}}\",\n  \"name\": \"Anil Sharma\",\n  \"phone\": \"+91 99887 76655\",\n  \"employeeCode\": \"CE-001\",\n  \"dailyRate\": 700,\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('contractorEmployeeId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get contractor employee",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contractor-employees/{{contractorEmployeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractor-employees", "{{contractorEmployeeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update contractor employee",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractor-employees/{{contractorEmployeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractor-employees", "{{contractorEmployeeId}}"]
+            },
+            "description": "All fields optional, but at least one is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dailyRate\": 750,\n  \"status\": \"INACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete contractor employee",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contractor-employees/{{contractorEmployeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contractor-employees", "{{contractorEmployeeId}}"]
+            },
+            "description": "Returns 204 with no body. 409 while the contractor employee still has work assignments or payments."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Work Assignments",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER; manage: OWNER, ADMIN, MANAGER. Image attachments: list needs the view role; upload and delete need the manage role. Deleting the record also deletes its stored files.",
+      "item": [
+        {
+          "name": "List work assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "workerType",
+                  "value": "EMPLOYEE",
+                  "description": "EMPLOYEE | CONTRACTOR_EMPLOYEE",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorEmployeeId",
+                  "value": "{{contractorEmployeeId}}",
+                  "description": "Contractor employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "SCHEDULED",
+                  "description": "SCHEDULED | COMPLETED | CANCELLED",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Sorted newest day first, then by site."
+          }
+        },
+        {
+          "name": "Daily work assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/daily/2026-10-07?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "daily", "2026-10-07"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "workerType",
+                  "value": "EMPLOYEE",
+                  "description": "EMPLOYEE | CONTRACTOR_EMPLOYEE",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorEmployeeId",
+                  "value": "{{contractorEmployeeId}}",
+                  "description": "Contractor employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "SCHEDULED",
+                  "description": "SCHEDULED | COMPLETED | CANCELLED",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "All assignments on one calendar day (`YYYY-MM-DD` in the path)."
+          }
+        },
+        {
+          "name": "Site work assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/sites/{{siteId}}?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "sites", "{{siteId}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "workerType",
+                  "value": "EMPLOYEE",
+                  "description": "EMPLOYEE | CONTRACTOR_EMPLOYEE",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorEmployeeId",
+                  "value": "{{contractorEmployeeId}}",
+                  "description": "Contractor employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "SCHEDULED",
+                  "description": "SCHEDULED | COMPLETED | CANCELLED",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Assignments for one site. 404 when the site is not in your company."
+          }
+        },
+        {
+          "name": "Worker work assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/workers/{{employeeId}}?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "workers", "{{employeeId}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "SCHEDULED",
+                  "description": "SCHEDULED | COMPLETED | CANCELLED",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Assignments for one worker. The path id may be an employee or a contractor employee id. 404 when the worker is not in your company."
+          }
+        },
+        {
+          "name": "Create work assignment (employee)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments"]
+            },
+            "description": "Saves the new id into `{{workAssignmentId}}`. Site and employee must be in your company. `dailyRate` defaults to the employee's current rate. A worker can hold only one SCHEDULED or COMPLETED assignment per date (409 otherwise).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"workerType\": \"EMPLOYEE\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"date\": \"2026-10-07\",\n  \"workType\": \"Masonry\",\n  \"dailyRate\": 800,\n  \"status\": \"SCHEDULED\",\n  \"notes\": \"Ground floor slab\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('workAssignmentId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create work assignment (contractor employee)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments"]
+            },
+            "description": "Saves the new id into `{{workAssignmentId}}`. `contractorId` is optional and derived from the contractor employee; when sent it must match. `dailyRate` defaults to the contractor employee's current rate. A worker can hold only one SCHEDULED or COMPLETED assignment per date (409 otherwise).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"workerType\": \"CONTRACTOR_EMPLOYEE\",\n  \"contractorEmployeeId\": \"{{contractorEmployeeId}}\",\n  \"contractorId\": \"{{contractorId}}\",\n  \"date\": \"2026-10-07\",\n  \"workType\": \"Plumbing\",\n  \"dailyRate\": 700,\n  \"status\": \"SCHEDULED\",\n  \"notes\": \"Bathroom fittings\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('workAssignmentId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk create work assignments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "bulk"]
+            },
+            "description": "Schedules 1-100 workers (`employeeIds` and `contractorEmployeeIds` combined; either list may be omitted) at one site for one day, in a single transaction. `workType` defaults to each employee's role and is required when `contractorEmployeeIds` is not empty; `dailyRate` is each worker's current rate. Returns `{ succeeded: WorkAssignment[], failed: { workerType, workerId, reason, message, existingAssignmentId?, existingSiteId? }[] }`, both ordered employees first, then contractor employees. Failure reasons: DUPLICATE_IN_REQUEST, WORKER_NOT_FOUND, ALREADY_ASSIGNED (worker already holds a SCHEDULED or COMPLETED assignment that day). 201 when at least one assignment was created, 200 when all failed, 400 when the site is not in your company.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"date\": \"2026-10-08\",\n  \"employeeIds\": [\"{{employeeId}}\"],\n  \"contractorEmployeeIds\": [\"{{contractorEmployeeId}}\"],\n  \"workType\": \"Masonry\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get work assignment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/{{workAssignmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "{{workAssignmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update work assignment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/{{workAssignmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "{{workAssignmentId}}"]
+            },
+            "description": "All fields optional, but at least one is required. Accepts siteId, employeeId (EMPLOYEE assignments only), contractorEmployeeId (CONTRACTOR_EMPLOYEE assignments only), date, workType, dailyRate, status (SCHEDULED | COMPLETED | CANCELLED), notes. workerType cannot change. Changing the worker re-snapshots dailyRate unless it is sent too.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"date\": \"2026-10-08\",\n  \"workType\": \"Plastering\",\n  \"dailyRate\": 850,\n  \"status\": \"COMPLETED\",\n  \"notes\": \"Finished early\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete work assignment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/{{workAssignmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "{{workAssignmentId}}"]
+            },
+            "description": "Returns 204 with no body."
+          }
+        },
+        {
+          "name": "List work assignment attachments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/{{workAssignmentId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "{{workAssignmentId}}", "attachments"]
+            },
+            "description": "Every image attached to the work assignment, oldest first, with metadata and a download URL. The same list is embedded as `attachments` in the work assignment itself."
+          }
+        },
+        {
+          "name": "Upload work assignment attachments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && Array.isArray(res.data) && res.data.length > 0) {",
+                  "  pm.collectionVariables.set('attachmentId', res.data[res.data.length - 1].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat the \"files\" key to upload several images at once."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/{{workAssignmentId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["work-assignments", "{{workAssignmentId}}", "attachments"]
+            },
+            "description": "multipart/form-data with one or more images in the `files` field; no other fields are accepted. JPEG, PNG or WebP only, checked against the file contents (400 otherwise). At most 5 MB per file (413), at most 10 files per request and 10 attachments per work assignment in total (400). Returns 201 with every attachment of the work assignment, including the new ones, and saves the last one's id into `{{attachmentId}}`."
+          }
+        },
+        {
+          "name": "Delete work assignment attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-assignments/{{workAssignmentId}}/attachments/{{attachmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "work-assignments",
+                "{{workAssignmentId}}",
+                "attachments",
+                "{{attachmentId}}"
+              ]
+            },
+            "description": "Returns 204 with no body and removes the stored file. 404 when the attachment does not belong to this record."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER; manage: OWNER, ADMIN, MANAGER. Image attachments: list needs the view role; upload and delete need the manage role. Deleting the record also deletes its stored files.",
+      "item": [
+        {
+          "name": "List payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "workerType",
+                  "value": "EMPLOYEE",
+                  "description": "EMPLOYEE | CONTRACTOR_EMPLOYEE",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorEmployeeId",
+                  "value": "{{contractorEmployeeId}}",
+                  "description": "Contractor employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentType",
+                  "value": "WORK_PAYMENT",
+                  "description": "WORK_PAYMENT | ADVANCE | OTHER",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentMode",
+                  "value": "CASH",
+                  "description": "CASH | UPI | BANK | CHEQUE | OTHER",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start paymentDate, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end paymentDate, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Sorted newest paymentDate first, then most recently recorded."
+          }
+        },
+        {
+          "name": "Payment history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/history?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "workerType",
+                  "value": "EMPLOYEE",
+                  "description": "EMPLOYEE | CONTRACTOR_EMPLOYEE",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorEmployeeId",
+                  "value": "{{contractorEmployeeId}}",
+                  "description": "Contractor employee ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentType",
+                  "value": "WORK_PAYMENT",
+                  "description": "WORK_PAYMENT | ADVANCE | OTHER",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentMode",
+                  "value": "CASH",
+                  "description": "CASH | UPI | BANK | CHEQUE | OTHER",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start paymentDate, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end paymentDate, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Same filters and order as List payments. Each item also carries siteName, siteCode, workerName, workerCode, contractorName (when known) and invoice: the payment's generated invoice (number, status, WhatsApp status, …), absent when none was issued."
+          }
+        },
+        {
+          "name": "Create payment (employee)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"]
+            },
+            "description": "Saves the new id into `{{paymentId}}`. Worker and site must be in your company. `siteId` is optional; when sent, the worker must have a SCHEDULED or COMPLETED work assignment at that site (400 otherwise). Amount: 0.01–100000000, at most two decimals.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"workerType\": \"EMPLOYEE\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"amount\": 4800.5,\n  \"paymentDate\": \"2026-10-07\",\n  \"paymentType\": \"WORK_PAYMENT\",\n  \"paymentMode\": \"UPI\",\n  \"referenceNumber\": \"UPI-427381920\",\n  \"description\": \"Weekly wages 1–6 Oct\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('paymentId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create payment (contractor employee)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"]
+            },
+            "description": "Saves the new id into `{{paymentId}}`. Worker and site must be in your company. `siteId` is optional; when sent, the worker must have a SCHEDULED or COMPLETED work assignment at that site (400 otherwise). Amount: 0.01–100000000, at most two decimals. `contractorId` is optional and must match the contractor employee's contractor.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workerType\": \"CONTRACTOR_EMPLOYEE\",\n  \"contractorEmployeeId\": \"{{contractorEmployeeId}}\",\n  \"contractorId\": \"{{contractorId}}\",\n  \"amount\": 2000,\n  \"paymentDate\": \"2026-10-07\",\n  \"paymentType\": \"ADVANCE\",\n  \"paymentMode\": \"CASH\",\n  \"description\": \"Advance before tiling work\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('paymentId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update payment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}"]
+            },
+            "description": "All fields optional, but at least one is required. Accepts siteId (null detaches the site), employeeId (EMPLOYEE payments only), contractorEmployeeId (CONTRACTOR_EMPLOYEE payments only), amount, paymentDate, paymentType (WORK_PAYMENT | ADVANCE | OTHER), paymentMode (CASH | UPI | BANK | CHEQUE | OTHER), referenceNumber, description. workerType cannot change. Changing the worker or site re-checks that the worker has a work assignment at the site.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"amount\": 5000,\n  \"paymentDate\": \"2026-10-08\",\n  \"paymentType\": \"WORK_PAYMENT\",\n  \"paymentMode\": \"BANK\",\n  \"referenceNumber\": \"NEFT-99812\",\n  \"description\": \"Corrected amount\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete payment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}"]
+            },
+            "description": "Returns 204 with no body. Also deletes the payment's attachments, its invoice and the invoice PDF."
+          }
+        },
+        {
+          "name": "List payment attachments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}", "attachments"]
+            },
+            "description": "Every image attached to the payment, oldest first, with metadata and a download URL. The same list is embedded as `attachments` in the payment itself."
+          }
+        },
+        {
+          "name": "Upload payment attachments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && Array.isArray(res.data) && res.data.length > 0) {",
+                  "  pm.collectionVariables.set('attachmentId', res.data[res.data.length - 1].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat the \"files\" key to upload several images at once."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}", "attachments"]
+            },
+            "description": "multipart/form-data with one or more images in the `files` field; no other fields are accepted. JPEG, PNG or WebP only, checked against the file contents (400 otherwise). At most 5 MB per file (413), at most 10 files per request and 10 attachments per payment in total (400). Returns 201 with every attachment of the payment, including the new ones, and saves the last one's id into `{{attachmentId}}`."
+          }
+        },
+        {
+          "name": "Delete payment attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}/attachments/{{attachmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}", "attachments", "{{attachmentId}}"]
+            },
+            "description": "Returns 204 with no body and removes the stored file. 404 when the attachment does not belong to this record."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER; manage: OWNER, ADMIN, MANAGER. A worker payment has at most one invoice: a PDF payment receipt (company, invoice number, date, site, worker/contractor, work details, amount, payment mode, notes) rendered with Puppeteer and kept in file storage. Invoice numbers are INV-<year>-<sequence>, per company and per year of the invoice date. Deleting a payment also deletes its invoice and PDF. Invoices can be sent to the recipient over WhatsApp as a PDF document (send endpoint, or sendWhatsapp on create); whatsappStatus then moves NOT_SENT → QUEUED → SENT → DELIVERED → READ, or FAILED with a user-facing whatsappError.",
+      "item": [
+        {
+          "name": "List invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invoices?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "paymentId",
+                  "value": "{{paymentId}}",
+                  "description": "Payment ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "GENERATED",
+                  "description": "PENDING | GENERATED | FAILED | CANCELLED",
+                  "disabled": true
+                },
+                {
+                  "key": "recipientType",
+                  "value": "EMPLOYEE",
+                  "description": "EMPLOYEE | CONTRACTOR | CONTRACTOR_EMPLOYEE",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "INV-2026",
+                  "description": "Matches invoice number or recipient name (case-insensitive)",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start invoiceDate, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end invoiceDate, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Sorted newest invoiceDate first, then most recently issued."
+          }
+        },
+        {
+          "name": "Create invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices"]
+            },
+            "description": "Issues the invoice of a payment in your company and renders its PDF; returns 201 with status GENERATED and saves the new id into `{{invoiceId}}`. Only paymentId is required. invoiceDate defaults to the payment date; workDetails defaults to the payment description. workPeriod (at most 62 days) lists the worker's SCHEDULED and COMPLETED assignments in that range (at the payment's site, if any). 409 when the payment already has an invoice (details.invoiceId); 503 when the PDF could not be rendered (the invoice is kept with status FAILED; regenerate it). Set sendWhatsapp to true to also send the PDF to the recipient phone on file over WhatsApp; a failed send does not fail the request — the invoice is returned with whatsappStatus FAILED and whatsappError.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"invoiceDate\": \"2026-10-07\",\n  \"workPeriod\": {\n    \"from\": \"2026-10-01\",\n    \"to\": \"2026-10-06\"\n  },\n  \"workDetails\": \"Brickwork and plastering, ground floor, Block A\",\n  \"notes\": \"Balance to be settled after site inspection.\",\n  \"sendWhatsapp\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('invoiceId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get invoice",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{invoiceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices", "{{invoiceId}}"]
+            },
+            "description": "Invoice metadata. The PDF itself is only available through View / Download PDF, which check access."
+          }
+        },
+        {
+          "name": "View invoice PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{invoiceId}}/view",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices", "{{invoiceId}}", "view"]
+            },
+            "description": "Streams the PDF with Content-Type application/pdf and Content-Disposition inline, for in-browser viewing. 409 when no PDF has been generated yet."
+          }
+        },
+        {
+          "name": "Download invoice PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{invoiceId}}/download",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices", "{{invoiceId}}", "download"]
+            },
+            "description": "Same as View invoice PDF, but with Content-Disposition attachment; filename=\"<invoiceNumber>.pdf\"."
+          }
+        },
+        {
+          "name": "Regenerate invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{invoiceId}}/regenerate",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices", "{{invoiceId}}", "regenerate"]
+            },
+            "description": "Re-renders the PDF from the payment's current amount, worker and site, keeping the invoice number; also retries FAILED invoices. The body is optional and every field in it is optional: omitted fields keep their stored value, workPeriod: null removes the period, and an empty string clears workDetails or notes. The previous PDF is replaced.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceDate\": \"2026-10-08\",\n  \"workPeriod\": {\n    \"from\": \"2026-10-01\",\n    \"to\": \"2026-10-07\"\n  },\n  \"workDetails\": \"Brickwork and plastering, ground floor, Block A (revised)\",\n  \"notes\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Send invoice on WhatsApp",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{invoiceId}}/whatsapp",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices", "{{invoiceId}}", "whatsapp"]
+            },
+            "description": "Sends the invoice PDF as a WhatsApp document (uploaded to WhatsApp as media; uses the WHATSAPP_INVOICE_TEMPLATE_NAME template when configured) and saves the message status on the invoice. The PDF is regenerated first if it is missing or FAILED. phone is optional and defaults to the recipient phone on file; it must include the country code. Returns 200 with whatsappStatus SENT. Errors: 400 VALIDATION_ERROR on phone (none on file or invalid); 409 while another send of the same invoice is in progress; 503 WHATSAPP_NOT_CONFIGURED when the server has no WhatsApp provider; 502 WHATSAPP_SEND_FAILED when WhatsApp rejected or did not answer (details.retryable). Every failure after validation is also recorded on the invoice as whatsappStatus FAILED with whatsappError. Transient provider errors are retried automatically.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+91 98765 43210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Worker Summaries",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER. Built from SCHEDULED and COMPLETED work assignments (assigned days, earned = sum of snapshotted daily rates) and all payments (work payments, advances, other). outstandingAmount = earnedAmount - paidAmount; negative when paid ahead. Amounts rounded to two decimals.",
+      "item": [
+        {
+          "name": "List worker summaries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/worker-summaries?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["worker-summaries"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId. Payments not tied to a site are excluded when set.",
+                  "disabled": true
+                },
+                {
+                  "key": "workerType",
+                  "value": "EMPLOYEE",
+                  "description": "EMPLOYEE | CONTRACTOR_EMPLOYEE",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day (assignment date / paymentDate), YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "One row per worker with any matching assignment or payment, highest outstandingAmount first. Response also has `totals` (including workerCount) across all matching workers, not just the current page, and echoes the applied `filters`. 400 when siteId is not in your company."
+          }
+        },
+        {
+          "name": "Worker summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/worker-summaries/{{employeeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["worker-summaries", "{{employeeId}}"],
+              "query": [
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId. Payments not tied to a site are excluded when set.",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day (assignment date / paymentDate), YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Totals for one worker plus a per-site breakdown (`sites`, highest outstanding first; siteId null groups payments not tied to a site). The path id may be an employee or a contractor employee id. 404 when the worker is not in your company; 400 when siteId is not in your company."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER; manage: OWNER, ADMIN, MANAGER. A site cannot be deleted while expenses reference it (409). Image attachments: list needs the view role; upload and delete need the manage role. Deleting the record also deletes its stored files.",
+      "item": [
+        {
+          "name": "List expenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "MATERIAL",
+                  "description": "MATERIAL | TRANSPORT | EQUIPMENT | LABOUR | OTHER",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start expenseDate, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end expenseDate, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Sorted newest expenseDate first, then most recently recorded."
+          }
+        },
+        {
+          "name": "Create expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses"]
+            },
+            "description": "Saves the new id into `{{expenseId}}`. siteId is required and must be in your company (400 otherwise). category: MATERIAL | TRANSPORT | EQUIPMENT | LABOUR | OTHER. paymentMode: CASH | UPI | BANK | CHEQUE | OTHER. Amount: 0.01–100000000, at most two decimals. vendorName and description are optional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"category\": \"MATERIAL\",\n  \"vendorName\": \"Sri Balaji Cement Traders\",\n  \"amount\": 18500.75,\n  \"expenseDate\": \"2026-10-07\",\n  \"paymentMode\": \"UPI\",\n  \"description\": \"50 bags OPC 53 grade cement\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('expenseId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get expense",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses", "{{expenseId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update expense",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses", "{{expenseId}}"]
+            },
+            "description": "All fields optional, but at least one is required. Accepts siteId (must be in your company), category, vendorName (empty string clears it), amount, expenseDate, paymentMode, description (empty string clears it).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"category\": \"TRANSPORT\",\n  \"vendorName\": \"Ravi Logistics\",\n  \"amount\": 3200,\n  \"expenseDate\": \"2026-10-08\",\n  \"paymentMode\": \"CASH\",\n  \"description\": \"Truck hire for sand delivery\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete expense",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses", "{{expenseId}}"]
+            },
+            "description": "Returns 204 with no body."
+          }
+        },
+        {
+          "name": "List expense attachments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses", "{{expenseId}}", "attachments"]
+            },
+            "description": "Every image attached to the expense, oldest first, with metadata and a download URL. The same list is embedded as `attachments` in the expense itself."
+          }
+        },
+        {
+          "name": "Upload expense attachments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && Array.isArray(res.data) && res.data.length > 0) {",
+                  "  pm.collectionVariables.set('attachmentId', res.data[res.data.length - 1].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat the \"files\" key to upload several images at once."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses", "{{expenseId}}", "attachments"]
+            },
+            "description": "multipart/form-data with one or more images in the `files` field; no other fields are accepted. JPEG, PNG or WebP only, checked against the file contents (400 otherwise). At most 5 MB per file (413), at most 10 files per request and 10 attachments per expense in total (400). Returns 201 with every attachment of the expense, including the new ones, and saves the last one's id into `{{attachmentId}}`."
+          }
+        },
+        {
+          "name": "Delete expense attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}/attachments/{{attachmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["expenses", "{{expenseId}}", "attachments", "{{attachmentId}}"]
+            },
+            "description": "Returns 204 with no body and removes the stored file. 404 when the attachment does not belong to this record."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client Payments",
+      "description": "Money received from clients. Requires roles — view: OWNER, ADMIN, MANAGER; manage: OWNER, ADMIN, MANAGER. Image attachments: list needs the view role; upload and delete need the manage role. Deleting the record also deletes its stored files.",
+      "item": [
+        {
+          "name": "List client payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/client-payments?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "clientId",
+                  "value": "{{clientId}}",
+                  "description": "Client ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId; receipts not tied to a site are left out",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentMode",
+                  "value": "BANK",
+                  "description": "CASH | UPI | BANK | CHEQUE | OTHER",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start receivedDate, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end receivedDate, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Sorted newest receivedDate first, then most recently recorded."
+          }
+        },
+        {
+          "name": "Client payment summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/client-payments/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments", "summary"],
+              "query": [
+                {
+                  "key": "clientId",
+                  "value": "{{clientId}}",
+                  "description": "Client ObjectId",
+                  "disabled": true
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId; receipts not tied to a site are left out",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentMode",
+                  "value": "BANK",
+                  "description": "CASH | UPI | BANK | CHEQUE | OTHER",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start receivedDate, YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end receivedDate, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Total client receipts matching the filters: `totals` { totalAmount, paymentCount } plus `byClient`, `bySite` (siteId null groups receipts not tied to a site) and `byPaymentMode` breakdowns, each highest totalAmount first. Amounts rounded to two decimals."
+          }
+        },
+        {
+          "name": "Create client payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/client-payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments"]
+            },
+            "description": "Saves the new id into `{{clientPaymentId}}`. Client and site must be in your company. `siteId` is optional; when sent, the site must belong to the client (400 otherwise). Amount: 0.01–100000000, at most two decimals.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"siteId\": \"{{siteId}}\",\n  \"amount\": 250000,\n  \"receivedDate\": \"2026-10-07\",\n  \"paymentMode\": \"BANK\",\n  \"referenceNumber\": \"NEFT-55120934\",\n  \"description\": \"Second milestone payment — slab casting\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('clientPaymentId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get client payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/client-payments/{{clientPaymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments", "{{clientPaymentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update client payment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/client-payments/{{clientPaymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments", "{{clientPaymentId}}"]
+            },
+            "description": "All fields optional, but at least one is required. Accepts clientId, siteId (null detaches the site), amount, receivedDate, paymentMode (CASH | UPI | BANK | CHEQUE | OTHER), referenceNumber, description. Changing the client or site re-checks that the site belongs to the client.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\",\n  \"amount\": 260000,\n  \"receivedDate\": \"2026-10-08\",\n  \"paymentMode\": \"CHEQUE\",\n  \"referenceNumber\": \"CHQ-004512\",\n  \"description\": \"Corrected amount\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete client payment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/client-payments/{{clientPaymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments", "{{clientPaymentId}}"]
+            },
+            "description": "Returns 204 with no body."
+          }
+        },
+        {
+          "name": "List client payment attachments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/client-payments/{{clientPaymentId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments", "{{clientPaymentId}}", "attachments"]
+            },
+            "description": "Every image attached to the client payment, oldest first, with metadata and a download URL. The same list is embedded as `attachments` in the client payment itself."
+          }
+        },
+        {
+          "name": "Upload client payment attachments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && Array.isArray(res.data) && res.data.length > 0) {",
+                  "  pm.collectionVariables.set('attachmentId', res.data[res.data.length - 1].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat the \"files\" key to upload several images at once."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/client-payments/{{clientPaymentId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments", "{{clientPaymentId}}", "attachments"]
+            },
+            "description": "multipart/form-data with one or more images in the `files` field; no other fields are accepted. JPEG, PNG or WebP only, checked against the file contents (400 otherwise). At most 5 MB per file (413), at most 10 files per request and 10 attachments per client payment in total (400). Returns 201 with every attachment of the client payment, including the new ones, and saves the last one's id into `{{attachmentId}}`."
+          }
+        },
+        {
+          "name": "Delete client payment attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/client-payments/{{clientPaymentId}}/attachments/{{attachmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["client-payments", "{{clientPaymentId}}", "attachments", "{{attachmentId}}"]
+            },
+            "description": "Returns 204 with no body and removes the stored file. 404 when the attachment does not belong to this record."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Company-wide financial overview. Requires roles — view: OWNER, ADMIN, MANAGER.",
+      "item": [
+        {
+          "name": "Dashboard summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "summary"],
+              "query": [
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId; applies to everything, records not tied to a site are left out",
+                  "disabled": true
+                },
+                {
+                  "key": "clientId",
+                  "value": "{{clientId}}",
+                  "description": "Client ObjectId; client payments match on client, worker payments and expenses on the client's sites. With siteId, the site must belong to this client",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee ObjectId; narrows worker payments only",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId; narrows contractor payments only",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start date (receivedDate / paymentDate / expenseDate), YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end date, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "`totals` { clientPaymentsReceived, workerPayments (own employees), contractorPayments (contractor employees), expenses, balance = received - worker - contractor - expenses } plus `bySite` (same fields per site, siteId null groups records not tied to a site, highest clientPaymentsReceived first), `byWorker` and `byContractor` ({ totalAmount, paymentCount }, highest totalAmount first). Amounts rounded to two decimals; every payment type counts."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "description": "Requires roles — view: OWNER, ADMIN, MANAGER. The site financial report sums client receipts, worker payments and expenses per site (see its request). The worker financial report is built with a MongoDB aggregation over SCHEDULED and COMPLETED work assignments (work days = assignedDays, earned = sum of snapshotted daily rates) and all payments (work payments, advances, other). outstandingAmount = earnedAmount - paidAmount; negative when paid ahead. Amounts rounded to two decimals. employeeId cannot be combined with contractorId or contractorEmployeeId (400); with both contractorId and contractorEmployeeId, the contractor employee must belong to that contractor (400). 400 when a filtered site, employee, contractor or contractor employee is not in your company.",
+      "item": [
+        {
+          "name": "Worker financial report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/worker-financial?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "worker-financial"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Max 100"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day (assignment date / paymentDate), YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId. Payments not tied to a site are excluded when set.",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee ObjectId; not combinable with contractorId or contractorEmployeeId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId; every worker the contractor supplies",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorEmployeeId",
+                  "value": "{{contractorEmployeeId}}",
+                  "description": "Contractor employee ObjectId",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "One row per worker ({ worker, totals: { assignedDays, earnedAmount, paidAmount, outstandingAmount } }) with any matching assignment or payment, highest outstandingAmount first. `worker.contractorName` is set for contractor employees. Response also has `totals` (including workerCount) across all matching workers, not just the current page, and echoes the applied `filters`."
+          }
+        },
+        {
+          "name": "Export worker financial report (CSV)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/worker-financial/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "worker-financial", "export"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day (assignment date / paymentDate), YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId. Payments not tied to a site are excluded when set.",
+                  "disabled": true
+                },
+                {
+                  "key": "employeeId",
+                  "value": "{{employeeId}}",
+                  "description": "Employee ObjectId; not combinable with contractorId or contractorEmployeeId",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorId",
+                  "value": "{{contractorId}}",
+                  "description": "Contractor ObjectId; every worker the contractor supplies",
+                  "disabled": true
+                },
+                {
+                  "key": "contractorEmployeeId",
+                  "value": "{{contractorEmployeeId}}",
+                  "description": "Contractor employee ObjectId",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Same filters as the report, without pagination. Responds 200 with `text/csv` (UTF-8 with BOM) as an attachment named like `worker-financial-report-from-2026-10-01-to-2026-10-31.csv`: columns Worker, Employee code, Worker type, Contractor, Work days, Earned amount, Paid amount, Outstanding amount; every matching worker, then a totals row. Errors still use the JSON error envelope."
+          }
+        },
+        {
+          "name": "Site financial report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/site-financial",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "site-financial"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day (receivedDate / paymentDate / expenseDate), YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId. Receipts and payments not tied to a site are excluded when set.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Same roles as the dashboard (OWNER, ADMIN, MANAGER). One row per site with any matching client receipt, worker payment or expense, sorted by site name: { siteId, siteName, siteCode, clientReceipts, employeePayments, contractorPayments, materialExpenses, otherExpenses, totalExpenses, balance }. Employee payments go to own employees, contractor payments to contractor employees (every payment type counts). Other expenses are every category except MATERIAL. totalExpenses = employeePayments + contractorPayments + materialExpenses + otherExpenses; balance = clientReceipts - totalExpenses. Records not tied to a site are grouped in a last row with siteId null. Response also has `totals` (including siteCount) and echoes the applied `filters`. 400 when the site is not in your company."
+          }
+        },
+        {
+          "name": "Export site financial report (CSV)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/site-financial/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "site-financial", "export"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "description": "Inclusive start day (receivedDate / paymentDate / expenseDate), YYYY-MM-DD",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31",
+                  "description": "Inclusive end day, YYYY-MM-DD; must not be before from",
+                  "disabled": true
+                },
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}",
+                  "description": "Site ObjectId. Receipts and payments not tied to a site are excluded when set.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Same filters and roles as the site financial report. Responds 200 with `text/csv` (UTF-8 with BOM) as an attachment named like `site-financial-report-from-2026-10-01-to-2026-10-31.csv`: columns Site, Site code, Client receipts, Employee payments, Contractor payments, Material expenses, Other expenses, Total expenses, Balance; every matching site, then a totals row. Errors still use the JSON error envelope."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Cross-company, read-only platform view. Requires role SUPER_ADMIN (every other role gets 403). Super admins have no company and are created only with `npm run create-super-admin -w @umc/api`; they get 403 from every company-scoped endpoint.",
+      "item": [
+        {
+          "name": "List companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/companies?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "companies"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "ACTIVE | INACTIVE | SUSPENDED",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "acme",
+                  "description": "Case-insensitive match on company name",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Every company, newest first, each with `owners` (OWNER users), `userCount` and `siteCount`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const first = res.success && res.data.items[0];",
+                  "if (first) {",
+                  "  pm.collectionVariables.set('companyId', first.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get company",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/companies/{{companyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "companies", "{{companyId}}"]
+            },
+            "description": "The company with `owners`, `userCount`, `siteCount` and all its `users`. List its sites with **List sites** and `companyId`."
+          }
+        },
+        {
+          "name": "List sites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/sites?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sites"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "companyId",
+                  "value": "{{companyId}}",
+                  "description": "Company ObjectId; only that company's sites",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "PLANNED | ACTIVE | ON_HOLD | COMPLETED | CANCELLED",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "tower",
+                  "description": "Case-insensitive match on site name or code",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Sites across every company, each with `companyName` and `clientName`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const first = res.success && res.data.items[0];",
+                  "if (first) {",
+                  "  pm.collectionVariables.set('siteId', first.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get site",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/sites/{{siteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "sites", "{{siteId}}"]
+            },
+            "description": "`{ site, company, owners, client, totals }`; `totals` are the site's all-time { clientPaymentsReceived, workerPayments, contractorPayments, expenses, balance }."
+          }
+        }
+      ]
+    }
+  ]
+}

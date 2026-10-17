@@ -1,0 +1,42 @@
+---
+description: Controller / service / repository separation and Zod validation for the API layers
+globs: apps/api/src/{routes,controllers,services,repositories,models,validators}/**/*.ts
+alwaysApply: false
+---
+
+# API layers
+
+| Layer | File | Does | Must not |
+|---|---|---|---|
+| Routes | `*.routes.ts` | Map verb + path (from `API_ROUTES`) to controller | Contain logic |
+| Controller | `*.controller.ts` | Parse input with Zod, call one service method, send `ApiSuccess<T>` | Contain business rules, touch models, branch on domain state |
+| Service | `*.service.ts` | Business rules, orchestration, throw `ApiError` | Import Express types or Mongoose models |
+| Repository | `*.repository.ts` | All DB access via the Mongoose model | Contain business rules or know about HTTP |
+| Validator | `*.validator.ts` | Zod schemas for body/params/query | — |
+
+- Services return shared DTOs (from `@umc/shared`), mapping from lean documents (`_id` → `id`, drop `__v` and sensitive fields).
+- Validate every external input (`req.body`, `req.params`, `req.query`) with `schema.parse()`; a `ZodError` becomes a 400 automatically. Use `z.infer` for input types and `z.coerce` for query/param numbers.
+
+```ts
+// controllers/project.controller.ts
+export async function createProject(req: Request, res: Response): Promise<void> {
+  const input = createProjectSchema.parse(req.body);
+  const project = await projectService.create(input);
+  sendSuccess(res, project, 201);
+}
+
+// services/project.service.ts
+export async function create(input: CreateProjectInput): Promise<ProjectDto> {
+  if (await projectRepository.existsByCode(input.code)) {
+    throw ApiError.conflict('Project code already in use');
+  }
+  return toProjectDto(await projectRepository.create(input));
+}
+
+// repositories/project.repository.ts
+export function existsByCode(code: string): Promise<boolean> {
+  return ProjectModel.exists({ code }).then(Boolean);
+}
+```
+
+❌ `if (project.status === 'closed') throw ...` inside a controller — that rule belongs in the service.

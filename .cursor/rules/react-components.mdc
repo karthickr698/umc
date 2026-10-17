@@ -1,0 +1,28 @@
+---
+description: React component design and reuse
+globs: apps/web/**/*.tsx
+alwaysApply: false
+---
+
+# React components
+
+- Check `src/components/` before creating UI. Generic, reusable pieces (Button, Input, Modal, Table, Spinner, EmptyState) live there; feature-specific ones in `src/features/<feature>/components/`.
+- One component per file, kebab-case filename, PascalCase named export (`project-card.tsx` → `ProjectCard`).
+- Keep components small and presentational. Move data fetching and state logic into hooks (`use-*.ts`); move pure helpers into `src/lib/`.
+- Type props with an exported `interface XProps`. Extend native props for wrappers so they stay flexible:
+
+```tsx
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'danger';
+}
+
+export function Button({ variant = 'primary', className, ...rest }: ButtonProps) {
+  return <button className={`btn btn--${variant} ${className ?? ''}`} {...rest} />;
+}
+```
+
+- Prefer composition (`children`, render slots) over boolean-flag explosions or copy-pasted variants.
+- If similar JSX appears twice, extract a component; if similar stateful logic appears twice, extract a hook.
+- Derive values during render instead of syncing them with `useEffect`. Use `useMemo`/`useCallback` only for measured cost or referential stability.
+- Stable `key`s from data ids, never array indexes for dynamic lists.
+- No API calls, `fetch`, or business rules inside presentational components.

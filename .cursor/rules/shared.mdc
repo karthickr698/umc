@@ -1,0 +1,13 @@
+---
+description: Rules for the @umc/shared package consumed by both web and API
+globs: packages/shared/**/*.ts
+alwaysApply: false
+---
+
+# Shared package (`packages/shared`)
+
+- Contains only types, constants, and pure functions. No runtime dependencies on Node, the DOM, Express, Mongoose or React.
+- Relative imports use the `.js` extension (NodeNext ESM).
+- Export everything through `src/index.ts` via barrel files (`types/index.ts`, `constants/index.ts`).
+- The package is consumed from its compiled `dist/`. After changing it, `npm run build:shared` (or keep `npm run dev` running, which watches it).
+- Treat exported types as an API contract: changing them affects both apps, so update both in the same change.

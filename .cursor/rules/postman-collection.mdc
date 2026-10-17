@@ -1,0 +1,44 @@
+---
+description: Keep the Postman collection in sync with every API endpoint change
+globs: apps/api/src/{routes,controllers,validators}/**/*.ts,packages/shared/src/**/*.ts,apps/api/postman/**/*.json
+alwaysApply: false
+---
+
+# Postman collection
+
+`apps/api/postman/umc-api.postman_collection.json` (Postman v2.1) must always match the API. The environment file `umc-local.postman_environment.json` holds `baseUrl`, `email`, `password`.
+
+## When to update
+
+Update the collection **in the same change** whenever you:
+
+- add, remove, or rename an endpoint (route, method, or path in `API_ROUTES`);
+- change a request body, query params, or path params (validator / shared request type);
+- change auth/role requirements, status codes, or response shape worth documenting.
+
+## How
+
+- One folder per feature (`Users`, `Clients`, …), ordered as mounted in `routes/index.ts`.
+- URLs: `{{baseUrl}}/<path>` with both `raw` and `path` segments filled in; ids as `{{<feature>Id}}`.
+- Auth is inherited from the collection (Bearer `{{accessToken}}`). Public endpoints (health, login/refresh/logout) set `"auth": { "type": "noauth" }`.
+- Bodies: realistic sample JSON covering every field the Zod schema accepts, valid enum values only.
+- List requests: `page`/`pageSize` enabled, every other filter present but `"disabled": true`, with allowed values in `description`.
+- Create requests get a test script that saves `res.data.id` into the matching collection variable; declare that variable in the top-level `variable` array.
+- Put role requirements on the folder `description`, and non-obvious behaviour (204, at-least-one-field PATCH) on the request.
+- Never commit real values: `accessToken`, ids, `email` and `password` stay `""`.
+- Run `npx prettier --write apps/api/postman` and make sure the file is still valid JSON.
+
+```json
+{
+  "name": "Get client",
+  "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+      "raw": "{{baseUrl}}/clients/{{clientId}}",
+      "host": ["{{baseUrl}}"],
+      "path": ["clients", "{{clientId}}"]
+    }
+  }
+}
+```
