@@ -80,7 +80,14 @@ Add dependencies to a specific workspace with `npm i <pkg> -w @umc/api` (or `-w 
 
 ## Deploying to Vercel
 
-The repo deploys as a single Vercel project (`vercel.json` at the root): the built web app is served as static files and every `/api/*` request goes to one serverless function (`api/index.js` → `apps/api/src/vercel.ts`). Web and API share an origin, so `VITE_API_BASE_URL` stays `/api`, no CORS setup is needed for the browser, and the `strict` refresh cookie keeps working.
+The repo deploys as one Vercel project with two [services](https://vercel.com/docs/services), defined in `vercel.json` at the root:
+
+| Service | Root       | Public path | What it is                                                         |
+| ------- | ---------- | ----------- | ------------------------------------------------------------------ |
+| `api`   | `apps/api` | `/api/*`    | Express app as one function (entry point `apps/api/src/vercel.ts`) |
+| `web`   | `apps/web` | `/*`        | Vite SPA as static files; unknown paths fall back to `/index.html` |
+
+The API receives the full path (`/api/...`), matching its `/api` prefix. Web and API share an origin, so `VITE_API_BASE_URL` stays `/api`, no CORS setup is needed for the browser, and the `strict` refresh cookie keeps working. The web app only calls the API from the browser, so no service bindings are needed. Run both together locally with `vercel dev`.
 
 1. **MongoDB**: create a MongoDB Atlas cluster (transactions need a replica set) and allow connections from anywhere (`0.0.0.0/0`), since Vercel functions have no fixed IP.
 2. **File storage**: create a private S3 bucket, or a Cloudflare R2 bucket (`STORAGE_S3_REGION=auto`, `STORAGE_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`), plus an access key that can read, write and delete objects in it. Vercel has no persistent disk, so the API refuses to start there with `STORAGE_DRIVER=local`.
@@ -183,11 +190,10 @@ Every response uses the same envelope (types in `@umc/shared`):
 │           └── styles/
 ├── packages/
 │   └── shared/              Shared types and constants
-├── api/index.js             Vercel function, forwards to apps/api/dist/vercel.js
 ├── .cursor/rules/           AI coding conventions
 ├── docker-compose.yml       Local MongoDB
 ├── eslint.config.js
 ├── tsconfig.base.json
-├── vercel.json              Vercel build, function and routing config
+├── vercel.json              Vercel services (api, web) and public routing
 └── package.json             Workspaces + root scripts
 ```
