@@ -1,5 +1,6 @@
 import { env } from '../../config/env.js';
 import { LocalStorageService } from './local-storage.service.js';
+import { S3StorageService } from './s3-storage.service.js';
 import type { StorageService } from './storage.types.js';
 
 /** Path the local driver's files are served from (see `mountLocalStorage`). */
@@ -13,6 +14,8 @@ function createStorageService(): StorageService {
         publicBaseUrl:
           env.STORAGE_PUBLIC_BASE_URL ?? `http://localhost:${env.PORT}${LOCAL_STORAGE_ROUTE}`,
       });
+    case 's3':
+      return new S3StorageService(env.s3Storage);
   }
 }
 

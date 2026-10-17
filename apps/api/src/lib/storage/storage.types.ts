@@ -1,6 +1,6 @@
 import type { Readable } from 'node:stream';
 
-export const STORAGE_DRIVERS = ['local'] as const;
+export const STORAGE_DRIVERS = ['local', 's3'] as const;
 
 export type StorageDriver = (typeof STORAGE_DRIVERS)[number];
 

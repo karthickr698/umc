@@ -84,6 +84,21 @@ const envSchema = z
     STORAGE_PUBLIC_BASE_URL: z
       .url({ protocol: /^https?$/, error: 'must be an http(s) URL' })
       .optional(),
+    STORAGE_S3_BUCKET: z.string().trim().min(1).optional(),
+    STORAGE_S3_REGION: z.string().trim().min(1).default('us-east-1'),
+    STORAGE_S3_ENDPOINT: z
+      .url({ protocol: /^https?$/, error: 'must be an http(s) URL' })
+      .optional(),
+    STORAGE_S3_FORCE_PATH_STYLE: z.stringbool().default(false),
+    STORAGE_S3_ACCESS_KEY_ID: z.string().trim().min(1).optional(),
+    STORAGE_S3_SECRET_ACCESS_KEY: z.string().trim().min(1).optional(),
+    // SigV4 signed URLs are valid for at most 7 days.
+    STORAGE_S3_URL_EXPIRES_SECONDS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(7 * 24 * 60 * 60)
+      .default(12 * 60 * 60),
     PDF_BROWSER_EXECUTABLE_PATH: z.string().trim().min(1).optional(),
     PDF_BROWSER_NO_SANDBOX: z.stringbool().default(false),
     PDF_RENDER_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
@@ -118,7 +133,25 @@ const envSchema = z
       .optional(),
     // Set by npm when the API is started through an npm script.
     npm_package_version: z.string().default('0.0.0'),
+    // Set to "1" by Vercel in builds and serverless functions.
+    VERCEL: z.stringbool().default(false),
   })
+  .refine((data) => !data.VERCEL || data.STORAGE_DRIVER !== 'local', {
+    path: ['STORAGE_DRIVER'],
+    message: 'cannot be "local" on Vercel (no persistent disk); use "s3"',
+  })
+  .refine(
+    (data) =>
+      data.STORAGE_DRIVER !== 's3' ||
+      (data.STORAGE_S3_BUCKET &&
+        data.STORAGE_S3_ACCESS_KEY_ID &&
+        data.STORAGE_S3_SECRET_ACCESS_KEY),
+    {
+      path: ['STORAGE_S3_BUCKET'],
+      message:
+        'STORAGE_S3_BUCKET, STORAGE_S3_ACCESS_KEY_ID and STORAGE_S3_SECRET_ACCESS_KEY are required when STORAGE_DRIVER=s3',
+    },
+  )
   .refine((data) => data.JWT_ACCESS_SECRET !== data.JWT_REFRESH_SECRET, {
     path: ['JWT_REFRESH_SECRET'],
     message: 'must differ from JWT_ACCESS_SECRET',
@@ -143,12 +176,25 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+const data = parsed.data;
+
 export const env = {
-  ...parsed.data,
-  isProduction: parsed.data.NODE_ENV === 'production',
-  isTest: parsed.data.NODE_ENV === 'test',
-  appVersion: parsed.data.npm_package_version,
-  corsOrigins: parsed.data.CORS_ORIGIN,
+  ...data,
+  isProduction: data.NODE_ENV === 'production',
+  isTest: data.NODE_ENV === 'test',
+  isVercel: data.VERCEL,
+  appVersion: data.npm_package_version,
+  corsOrigins: data.CORS_ORIGIN,
+  // Only read when STORAGE_DRIVER=s3, which the refinement above guarantees is fully configured.
+  s3Storage: {
+    bucket: data.STORAGE_S3_BUCKET ?? '',
+    region: data.STORAGE_S3_REGION,
+    endpoint: data.STORAGE_S3_ENDPOINT,
+    forcePathStyle: data.STORAGE_S3_FORCE_PATH_STYLE,
+    accessKeyId: data.STORAGE_S3_ACCESS_KEY_ID ?? '',
+    secretAccessKey: data.STORAGE_S3_SECRET_ACCESS_KEY ?? '',
+    urlExpiresInSeconds: data.STORAGE_S3_URL_EXPIRES_SECONDS,
+  },
 } as const;
 
 export type Env = typeof env;

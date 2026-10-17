@@ -41,6 +41,8 @@ Frontend and backend have separate env files; never share one between them.
 |                 | `RATE_LIMIT_API_PER_MINUTE`            | Requests per minute per IP (default `300`)                  |
 |                 | `RATE_LIMIT_LOGIN_FAILURES_PER_15_MIN` | Failed sign-ins per IP per 15 minutes (default `10`)        |
 |                 | `LOG_LEVEL`                            | pino log level                                              |
+|                 | `STORAGE_DRIVER`                       | `local` (disk) \| `s3` (bucket; required on Vercel)         |
+|                 | `STORAGE_S3_*`                         | Bucket, region, endpoint and credentials for `s3`           |
 |                 | `PDF_BROWSER_EXECUTABLE_PATH`          | Chrome binary for invoice PDFs (default: Puppeteer's own)   |
 |                 | `PDF_BROWSER_NO_SANDBOX`               | Run Chrome without its sandbox (default `false`)            |
 |                 | `PDF_RENDER_TIMEOUT_MS`                | Timeout of one PDF render step (default `30000`)            |
@@ -75,6 +77,28 @@ All scripts are run from the repository root.
 In development the API builds missing indexes on startup. In production `autoIndex` is off, so run `npm run db:sync-indexes` (or `node dist/scripts/sync-indexes.js` in `apps/api` from a compiled build) after deploying a change to a schema's indexes. It also drops indexes no schema declares.
 
 Add dependencies to a specific workspace with `npm i <pkg> -w @umc/api` (or `-w @umc/web`, `-w @umc/shared`).
+
+## Deploying to Vercel
+
+The repo deploys as a single Vercel project (`vercel.json` at the root): the built web app is served as static files and every `/api/*` request goes to one serverless function (`api/index.js` → `apps/api/src/vercel.ts`). Web and API share an origin, so `VITE_API_BASE_URL` stays `/api`, no CORS setup is needed for the browser, and the `strict` refresh cookie keeps working.
+
+1. **MongoDB**: create a MongoDB Atlas cluster (transactions need a replica set) and allow connections from anywhere (`0.0.0.0/0`), since Vercel functions have no fixed IP.
+2. **File storage**: create a private S3 bucket, or a Cloudflare R2 bucket (`STORAGE_S3_REGION=auto`, `STORAGE_S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`), plus an access key that can read, write and delete objects in it. Vercel has no persistent disk, so the API refuses to start there with `STORAGE_DRIVER=local`.
+3. **Import the repo** in Vercel with the root directory left as the repository root. The framework preset, install and build commands, output directory and function settings all come from `vercel.json`.
+4. **Environment variables** (Project → Settings → Environment Variables), as documented in `apps/api/.env.example`:
+   - `NODE_ENV=production`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` (fresh values)
+   - `CORS_ORIGIN=https://<your-project>.vercel.app` (add your custom domain, comma-separated). Sign-in and refresh requests from any other origin are refused, so preview deployments need their URL listed too.
+   - `STORAGE_DRIVER=s3` and the `STORAGE_S3_*` variables
+   - `NODEJS_HELPERS=0`, so Vercel leaves request bodies to Express (webhook signatures need the raw bytes)
+   - optionally the `WHATSAPP_*` variables, with the webhook at `https://<your-domain>/api/webhooks/whatsapp`
+5. **Indexes**: production does not build indexes on startup, so after the first deploy (and after index changes) run `npm run db:sync-indexes` locally with `DATABASE_URL` pointing at Atlas. Create the first super admin the same way with `npm run create-super-admin`.
+
+Things that behave differently on Vercel:
+
+- **Request size**: Vercel rejects request bodies over 4.5 MB, which is less than one upload of several 5 MB attachments. Large uploads fail with `413`.
+- **Invoice PDFs** are rendered with [`@sparticuz/chromium`](https://github.com/Sparticuz/chromium) instead of Puppeteer's Chrome (whose download is skipped on Vercel builds by `.puppeteerrc.cjs`). The first render on a cold instance takes a few seconds, and functions are capped at 60 s (`maxDuration` in `vercel.json`).
+- **Rate limits** are counted in memory per function instance, so they're looser than configured when Vercel runs several instances.
+- `TRUST_PROXY=1` (the default) matches Vercel's single edge proxy.
 
 ## Roles and accounts
 
@@ -149,7 +173,8 @@ Every response uses the same envelope (types in `@umc/shared`):
 │   │   │   ├── utils/         ApiError, response helpers, error normalizers
 │   │   │   ├── types/         API-only TypeScript types
 │   │   │   ├── app.ts         Express app factory
-│   │   │   └── server.ts      Server bootstrap + graceful shutdown
+│   │   │   ├── server.ts      Server bootstrap + graceful shutdown
+│   │   │   └── vercel.ts      Serverless entry point (Vercel)
 │   │   └── tests/           Vitest + Supertest
 │   └── web/                 React SPA
 │       └── src/
@@ -158,9 +183,11 @@ Every response uses the same envelope (types in `@umc/shared`):
 │           └── styles/
 ├── packages/
 │   └── shared/              Shared types and constants
+├── api/index.js             Vercel function, forwards to apps/api/dist/vercel.js
 ├── .cursor/rules/           AI coding conventions
 ├── docker-compose.yml       Local MongoDB
 ├── eslint.config.js
 ├── tsconfig.base.json
+├── vercel.json              Vercel build, function and routing config
 └── package.json             Workspaces + root scripts
 ```

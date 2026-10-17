@@ -16,7 +16,18 @@ const ALLOWED_URL_PREFIXES = ['data:', 'about:'];
 let browserPromise: Promise<Browser> | undefined;
 const limit = createConcurrencyLimiter(env.PDF_MAX_CONCURRENT_RENDERS);
 
-function launchOptions(): LaunchOptions {
+async function launchOptions(): Promise<LaunchOptions> {
+  // Serverless functions lack Chrome's system libraries and the size budget for Puppeteer's
+  // download, so they use a Chromium build made for Lambda-like runtimes.
+  if (env.isVercel && !env.PDF_BROWSER_EXECUTABLE_PATH) {
+    const { default: chromium } = await import('@sparticuz/chromium');
+    chromium.setGraphicsMode = false;
+    return {
+      headless: 'shell',
+      executablePath: await chromium.executablePath(),
+      args: chromium.args,
+    };
+  }
   return {
     headless: 'shell',
     ...(env.PDF_BROWSER_EXECUTABLE_PATH && { executablePath: env.PDF_BROWSER_EXECUTABLE_PATH }),
@@ -27,18 +38,20 @@ function launchOptions(): LaunchOptions {
 
 /** One browser is shared by every render and relaunched if it crashes. */
 function getBrowser(): Promise<Browser> {
-  browserPromise ??= puppeteer.launch(launchOptions()).then(
-    (browser) => {
-      browser.once('disconnected', () => {
+  browserPromise ??= launchOptions()
+    .then((options) => puppeteer.launch(options))
+    .then(
+      (browser) => {
+        browser.once('disconnected', () => {
+          browserPromise = undefined;
+        });
+        return browser;
+      },
+      (err: unknown) => {
         browserPromise = undefined;
-      });
-      return browser;
-    },
-    (err: unknown) => {
-      browserPromise = undefined;
-      throw err;
-    },
-  );
+        throw err;
+      },
+    );
   return browserPromise;
 }
 
