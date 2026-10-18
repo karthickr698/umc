@@ -14,16 +14,20 @@ export interface AssignDraft {
 
 /** Why the draft can't be submitted yet, mirroring the bulk endpoint's checks; else `undefined`. */
 export function assignDraftProblem({ siteId, workers, workType }: AssignDraft): string | undefined {
-  if (!siteId) return 'Choose a site';
-  if (workers.length === 0) return 'Select at least one worker';
+  if (!siteId) return 'Start by choosing the site in step 1.';
+  if (workers.length === 0) return 'Next, tick the workers in step 2.';
   if (workers.length > WORK_ASSIGNMENT_LIMITS.maxBulkWorkers) {
-    return `Select at most ${WORK_ASSIGNMENT_LIMITS.maxBulkWorkers} workers at a time`;
+    return `You can assign up to ${WORK_ASSIGNMENT_LIMITS.maxBulkWorkers} workers at a time.`;
   }
-  const needsWorkType = workers.some(
-    (worker) => worker.workerType === WORKER_TYPES.CONTRACTOR_EMPLOYEE,
-  );
-  if (needsWorkType && !workType.trim()) return 'Enter a work type for contractor workers';
+  if (needsWorkType(workers) && !workType.trim()) {
+    return 'Step 3: enter a work type for contractor workers.';
+  }
   return undefined;
+}
+
+/** Contractor employees have no job role to fall back on, so they need an explicit work type. */
+export function needsWorkType(workers: readonly AllocationWorker[]): boolean {
+  return workers.some((worker) => worker.workerType === WORKER_TYPES.CONTRACTOR_EMPLOYEE);
 }
 
 export function toBulkRequest({

@@ -41,10 +41,10 @@ export function ResourceListPage<T extends { id: string }>({
       onPageChange={(page) => update({ page })}
       filters={
         <ListFilters
-          key={params.search}
           params={params}
           statuses={statuses}
           searchLabel={searchLabel}
+          noun={view.noun}
           onChange={update}
         />
       }

@@ -1,8 +1,8 @@
-import { DateRangeFilter } from '@/components/filters/date-range-filter';
+import { dateRangeChip, presentChips, selectChip } from '@/components/filters/filter-chips';
 import { FilterPanel } from '@/components/filters/filter-panel';
-import { FilterSelect } from '@/components/filters/filter-select';
 import { useReportSiteOptions } from '../hooks/use-report-site-options';
 import type { SiteReportFilters as Filters } from '../hooks/use-site-report-filters';
+import { SiteReportFilterFields } from './site-report-filter-fields';
 
 export interface SiteReportFiltersProps {
   filters: Filters;
@@ -18,17 +18,21 @@ export function SiteReportFilters({
   onReset,
 }: SiteReportFiltersProps) {
   const sites = useReportSiteOptions();
+  const chips = presentChips<keyof Filters>(
+    dateRangeChip(filters),
+    selectChip('siteId', 'Site', filters.siteId, sites),
+  );
 
   return (
-    <FilterPanel activeCount={activeCount} onReset={onReset}>
-      <DateRangeFilter value={{ from: filters.from, to: filters.to }} onChange={onChange} />
-      <FilterSelect
-        label="Site"
-        allLabel="All sites"
-        value={filters.siteId}
-        source={sites}
-        onChange={(siteId) => onChange({ siteId })}
-      />
-    </FilterPanel>
+    <FilterPanel
+      filters={filters}
+      activeCount={activeCount}
+      chips={chips}
+      onChange={onChange}
+      onReset={onReset}
+      renderFields={(values, change) => (
+        <SiteReportFilterFields filters={values} sites={sites} onChange={change} />
+      )}
+    />
   );
 }

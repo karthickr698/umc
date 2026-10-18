@@ -21,6 +21,7 @@ function expenseColumns(siteNames: ReadonlyMap<string, string>): DataTableColumn
     {
       id: 'category',
       header: 'Spent on',
+      mobile: 'title',
       render: (expense) => (
         <StackedCell
           primary={humanizeEnum(expense.category)}
@@ -37,6 +38,7 @@ function expenseColumns(siteNames: ReadonlyMap<string, string>): DataTableColumn
       id: 'amount',
       header: 'Amount',
       numeric: true,
+      mobile: 'aside',
       render: (expense) => <strong>{formatAmount(expense.amount)}</strong>,
     },
   ];

@@ -1,45 +1,70 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { deleteResource, type ResourceApi } from '@/lib/resource-api';
 import { describeError } from '@/utils/describe-error';
 import { useResourceMutation } from './use-resource-mutation';
+import { useToast } from './use-toast';
 
-/** Outcome of the last save or delete, shown above the list. */
-export interface ResourceNotice {
-  tone: 'success' | 'error';
-  message: string;
+/** The drawer's content: a record's details, its edit form, the add form, or nothing. */
+export type ResourceEditor<T> =
+  { mode: 'view'; item: T } | { mode: 'edit'; item: T } | { mode: 'create' } | null;
+
+/** A record the user asked to delete, waiting for them to confirm. */
+export interface PendingDelete<T> {
+  item: T;
+  /** e.g. `client "Asha Builders"`. */
+  name: string;
+  error?: string;
 }
 
-/** `{ item }` while editing, `{}` while adding, `null` when the form is closed. */
-export type ResourceEditor<T> = { item?: T } | null;
-
-/** The open add/edit form, the delete in flight, and the outcome of the last change. */
-export function useResourceEditor<T extends { id: string }>(api: ResourceApi) {
-  const [editor, setEditor] = useState<ResourceEditor<T>>(null);
-  const [notice, setNotice] = useState<ResourceNotice | null>(null);
+/** The open drawer, the delete being confirmed, and toasts for the outcome of each change. */
+export function useResourceEditor<T extends { id: string }>(
+  api: ResourceApi,
+  initialEditor: ResourceEditor<T> = null,
+) {
+  const { showToast } = useToast();
+  const [editor, setEditor] = useState<ResourceEditor<T>>(initialEditor);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete<T> | null>(null);
   const remove = useResourceMutation((id: string) => deleteResource(api, id));
+  const openCreate = useCallback(() => setEditor({ mode: 'create' }), []);
 
-  const handleDelete = (item: T, name: string) => {
-    setNotice(null);
+  const confirmDelete = () => {
+    if (!pendingDelete || remove.isPending) return;
+    const { item, name } = pendingDelete;
+    setPendingDelete({ item, name });
     remove.mutate(item.id, {
-      onSuccess: () => setNotice({ tone: 'success', message: `Deleted ${name}.` }),
-      onError: (error) => setNotice({ tone: 'error', message: describeError(error).message }),
+      onSuccess: () => {
+        setPendingDelete(null);
+        setEditor((current) =>
+          current && 'item' in current && current.item.id === item.id ? null : current,
+        );
+        showToast({ title: 'Deleted', message: `Deleted ${name}.` });
+      },
+      onError: (error) => setPendingDelete({ item, name, error: describeError(error).message }),
     });
   };
 
-  const handleSaved = (name: string) => {
-    setNotice({ tone: 'success', message: `Saved ${name}.` });
+  const handleSaved = (name: string, created: boolean) => {
+    showToast({
+      title: created ? 'Added' : 'Saved',
+      message: `${created ? 'Added' : 'Saved'} ${name}.`,
+    });
     setEditor(null);
   };
 
   return {
     editor,
-    openCreate: () => setEditor({}),
-    openEdit: (item: T) => setEditor({ item }),
+    openCreate,
+    openView: (item: T) => setEditor({ mode: 'view', item }),
+    openEdit: (item: T) => setEditor({ mode: 'edit', item }),
     closeEditor: () => setEditor(null),
-    notice,
-    dismissNotice: () => setNotice(null),
+    pendingDelete,
+    deleting: remove.isPending,
+    requestDelete: (item: T, name: string) => setPendingDelete({ item, name }),
+    cancelDelete: () => {
+      if (!remove.isPending) setPendingDelete(null);
+    },
+    confirmDelete,
     deletingId: remove.isPending ? remove.variables : undefined,
-    handleDelete,
     handleSaved,
   };
 }

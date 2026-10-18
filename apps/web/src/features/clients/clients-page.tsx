@@ -7,6 +7,7 @@ import { ResourceListPage } from '@/components/pages/resource-list-page';
 import { useCan } from '@/hooks/use-can';
 import { RESOURCE_API } from '@/lib/resource-api';
 import { formatAddress } from '@/utils/format';
+import { ClientDetails } from './components/client-details';
 import { ClientForm } from './components/client-form';
 
 const STATUSES = Object.values(CLIENT_STATUSES);
@@ -15,7 +16,12 @@ const COLUMNS: readonly DataTableColumn<ClientDto>[] = [
   { id: 'name', header: 'Client', render: (client) => client.name },
   { id: 'contact', header: 'Contact', render: (client) => <ContactCell {...client} /> },
   { id: 'address', header: 'Address', render: (client) => formatAddress(client.address) || '—' },
-  { id: 'status', header: 'Status', render: (client) => <StatusBadge status={client.status} /> },
+  {
+    id: 'status',
+    header: 'Status',
+    mobile: 'aside',
+    render: (client) => <StatusBadge status={client.status} />,
+  },
 ];
 
 export function ClientsPage() {
@@ -39,6 +45,7 @@ export function ClientsPage() {
           'A client is the person or company you build for. Every site belongs to a client, so start here.',
       }}
       Form={ClientForm}
+      Details={ClientDetails}
     />
   );
 }

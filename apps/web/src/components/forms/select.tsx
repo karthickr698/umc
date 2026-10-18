@@ -22,6 +22,7 @@ export interface SelectProps {
   id?: string;
   className?: string;
   'aria-label'?: string;
+  'aria-labelledby'?: string;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { WorkAssignmentDto } from '@umc/shared';
+import { useToast } from '@/hooks/use-toast';
 import { toBulkRequest, type AssignDraft } from '../lib/assign-form';
 import { assignResultNotice, errorNotice, type AllocationNotice } from '../lib/notices';
 import { siteLabel } from '@/lib/sites';
@@ -7,11 +8,24 @@ import { assignmentWorkerKey } from '../lib/workers';
 import type { AllocationReference } from './use-allocation-data';
 import { useAllocationMutations } from './use-allocation-mutations';
 
-/** The page's write actions, each reporting its outcome through `notice`. */
+/**
+ * The page's write actions. Successes pop up as a toast; problems stay on the page as `notice`
+ * until dismissed, since they may list several workers to read through.
+ */
 export function useAllocationActions(date: string, reference: AllocationReference) {
   const { assign, move, remove, pendingIds } = useAllocationMutations(date);
+  const { showToast } = useToast();
   const [notice, setNotice] = useState<AllocationNotice | null>(null);
   const { sitesById, workersByKey } = reference;
+
+  const report = (next: AllocationNotice) => {
+    if (next.tone === 'success') {
+      setNotice(null);
+      showToast({ tone: 'success', title: next.title });
+    } else {
+      setNotice(next);
+    }
+  };
 
   const workerName = (assignment: WorkAssignmentDto) =>
     workersByKey.get(assignmentWorkerKey(assignment))?.name ?? 'Worker';
@@ -20,10 +34,10 @@ export function useAllocationActions(date: string, reference: AllocationReferenc
   const assignWorkers = async (draft: Omit<AssignDraft, 'date'>): Promise<boolean> => {
     try {
       const result = await assign.mutateAsync(toBulkRequest({ ...draft, date }));
-      setNotice(assignResultNotice(result, sitesById.get(draft.siteId), workersByKey, sitesById));
+      report(assignResultNotice(result, sitesById.get(draft.siteId), workersByKey, sitesById));
       return true;
     } catch (error) {
-      setNotice(errorNotice('Could not assign workers', error));
+      report(errorNotice('Could not assign workers', error));
       return false;
     }
   };
@@ -32,12 +46,9 @@ export function useAllocationActions(date: string, reference: AllocationReferenc
     const name = workerName(assignment);
     try {
       await move.mutateAsync({ id: assignment.id, siteId });
-      setNotice({
-        tone: 'success',
-        title: `Moved ${name} to ${siteLabel(sitesById.get(siteId))}.`,
-      });
+      report({ tone: 'success', title: `Moved ${name} to ${siteLabel(sitesById.get(siteId))}.` });
     } catch (error) {
-      setNotice(errorNotice(`Could not move ${name}`, error));
+      report(errorNotice(`Could not move ${name}`, error));
     }
   };
 
@@ -45,12 +56,12 @@ export function useAllocationActions(date: string, reference: AllocationReferenc
     const name = workerName(assignment);
     try {
       await remove.mutateAsync({ id: assignment.id });
-      setNotice({
+      report({
         tone: 'success',
         title: `Removed ${name} from ${siteLabel(sitesById.get(assignment.siteId))}.`,
       });
     } catch (error) {
-      setNotice(errorNotice(`Could not remove ${name}`, error));
+      report(errorNotice(`Could not remove ${name}`, error));
     }
   };
 

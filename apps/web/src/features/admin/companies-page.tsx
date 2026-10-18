@@ -28,7 +28,6 @@ export function CompaniesPage() {
     <PageContainer title="Companies" description="Every company on the platform and its owners.">
       <div className="stack">
         <ListFilters
-          key={params.search}
           params={params}
           statuses={STATUSES}
           searchLabel="Company name"
@@ -36,9 +35,9 @@ export function CompaniesPage() {
         />
         <QueryResult query={query}>
           {(result) => (
-            <div className="card table-card" aria-busy={query.loading}>
+            <div className="card table-card table-card--stacked" aria-busy={query.loading}>
               <div className="table-scroll">
-                <table className="table">
+                <table className="table table--stacked">
                   <thead>
                     <tr>
                       <th scope="col">Company</th>
@@ -56,20 +55,24 @@ export function CompaniesPage() {
                   <tbody>
                     {result.items.map((company) => (
                       <tr key={company.id}>
-                        <td>
+                        <td data-label="Company" data-mobile="title">
                           <Link className="text-link" to={adminCompanyPath(company.id)}>
                             {company.name}
                           </Link>
                         </td>
-                        <td>
+                        <td data-label="Owners">
                           <ContactList users={company.owners} emptyMessage="No owner" />
                         </td>
-                        <td className="table__numeric">{company.userCount}</td>
-                        <td className="table__numeric">{company.siteCount}</td>
-                        <td>
+                        <td className="table__numeric" data-label="Users">
+                          {company.userCount}
+                        </td>
+                        <td className="table__numeric" data-label="Sites">
+                          {company.siteCount}
+                        </td>
+                        <td data-label="Status" data-mobile="aside">
                           <StatusBadge status={company.status} />
                         </td>
-                        <td>{formatDate(company.createdAt)}</td>
+                        <td data-label="Joined">{formatDate(company.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>

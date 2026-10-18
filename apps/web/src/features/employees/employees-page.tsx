@@ -8,6 +8,7 @@ import { useCan } from '@/hooks/use-can';
 import { RESOURCE_API } from '@/lib/resource-api';
 import { employeeOption } from '@/lib/select-options';
 import { formatAmount } from '@/utils/format';
+import { EmployeeDetails } from './components/employee-details';
 import { EmployeeForm } from './components/employee-form';
 
 const STATUSES = Object.values(EMPLOYEE_STATUSES);
@@ -29,6 +30,7 @@ const COLUMNS: readonly DataTableColumn<EmployeeDto>[] = [
   {
     id: 'status',
     header: 'Status',
+    mobile: 'aside',
     render: (employee) => <StatusBadge status={employee.status} />,
   },
 ];
@@ -43,7 +45,7 @@ export function EmployeesPage() {
       noun="employee"
       api={RESOURCE_API.employees}
       statuses={STATUSES}
-      searchLabel="Name, code, phone or role"
+      searchLabel="Name, employee code, phone or role"
       columns={COLUMNS}
       canManage={canManage}
       itemName={(employee) => employeeOption(employee).label}
@@ -54,6 +56,7 @@ export function EmployeesPage() {
           'Employees are workers on your own payroll. Add each one with their daily wage so you can give them work and pay them.',
       }}
       Form={EmployeeForm}
+      Details={EmployeeDetails}
     />
   );
 }

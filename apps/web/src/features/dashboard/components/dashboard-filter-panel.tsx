@@ -1,8 +1,8 @@
-import { DateRangeFilter } from '@/components/filters/date-range-filter';
+import { dateRangeChip, presentChips, selectChip } from '@/components/filters/filter-chips';
 import { FilterPanel } from '@/components/filters/filter-panel';
-import { FilterSelect } from '@/components/filters/filter-select';
-import type { DashboardFilters } from '../hooks/use-dashboard-filters';
+import { type DashboardFilters, normalizeDashboardChanges } from '../hooks/use-dashboard-filters';
 import { useFilterOptions } from '../hooks/use-filter-options';
+import { DashboardFilterFields } from './dashboard-filter-fields';
 
 export interface DashboardFilterPanelProps {
   filters: DashboardFilters;
@@ -18,38 +18,25 @@ export function DashboardFilterPanel({
   onReset,
 }: DashboardFilterPanelProps) {
   const { sites, clients, workers, contractors } = useFilterOptions(filters.clientId);
+  const chips = presentChips<keyof DashboardFilters>(
+    dateRangeChip(filters),
+    selectChip('clientId', 'Client', filters.clientId, clients),
+    selectChip('siteId', 'Site', filters.siteId, sites),
+    selectChip('employeeId', 'Worker', filters.employeeId, workers),
+    selectChip('contractorId', 'Contractor', filters.contractorId, contractors),
+  );
 
   return (
-    <FilterPanel activeCount={activeCount} onReset={onReset}>
-      <DateRangeFilter value={{ from: filters.from, to: filters.to }} onChange={onChange} />
-      <FilterSelect
-        label="Client"
-        allLabel="All clients"
-        value={filters.clientId}
-        source={clients}
-        onChange={(clientId) => onChange({ clientId })}
-      />
-      <FilterSelect
-        label="Site"
-        allLabel={filters.clientId ? "All of client's sites" : 'All sites'}
-        value={filters.siteId}
-        source={sites}
-        onChange={(siteId) => onChange({ siteId })}
-      />
-      <FilterSelect
-        label="Worker"
-        allLabel="All workers"
-        value={filters.employeeId}
-        source={workers}
-        onChange={(employeeId) => onChange({ employeeId })}
-      />
-      <FilterSelect
-        label="Contractor"
-        allLabel="All contractors"
-        value={filters.contractorId}
-        source={contractors}
-        onChange={(contractorId) => onChange({ contractorId })}
-      />
-    </FilterPanel>
+    <FilterPanel
+      filters={filters}
+      activeCount={activeCount}
+      chips={chips}
+      onChange={onChange}
+      onReset={onReset}
+      normalize={normalizeDashboardChanges}
+      renderFields={(values, change) => (
+        <DashboardFilterFields filters={values} onChange={change} />
+      )}
+    />
   );
 }

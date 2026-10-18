@@ -13,7 +13,10 @@ export function WorkAllocationPage() {
   const { reference, daily } = useAllocationData(params.date);
 
   return (
-    <PageContainer title="Assign Work" description="Choose who works at which site each day.">
+    <PageContainer
+      title="Assign Work"
+      description="Pick a day, choose a site, and tick the workers who will go there."
+    >
       <QueryResult query={reference}>
         {(data) => (
           <AllocationWorkspace

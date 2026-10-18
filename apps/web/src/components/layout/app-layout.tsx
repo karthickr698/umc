@@ -5,6 +5,7 @@ import { DESKTOP_MEDIA_QUERY, STORAGE_KEYS } from '@/config/layout';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useNavSections } from '@/hooks/use-nav-sections';
 import { usePersistentBoolean } from '@/hooks/use-persistent-boolean';
+import { BottomNav } from './bottom-nav';
 import { MobileNav } from './mobile-nav';
 import { Sidebar } from './sidebar';
 import { TopNav } from './top-nav';
@@ -39,6 +40,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      {!isDesktop && <BottomNav menuOpen={mobileNavOpen} onOpenMenu={openMobileNav} />}
     </div>
   );
 }

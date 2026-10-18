@@ -7,17 +7,18 @@ export interface DayPickerProps {
   /** `YYYY-MM-DD`. */
   value: string;
   onChange: (day: string) => void;
+  label?: string;
 }
 
 const shiftDay = (day: string, days: number) =>
   toCalendarDate(addDays(parseCalendarDate(day), days));
 
 /** A date input with previous/next day and "Today" shortcuts. */
-export function DayPicker({ value, onChange }: DayPickerProps) {
+export function DayPicker({ value, onChange, label = 'Date' }: DayPickerProps) {
   const todayValue = toCalendarDate(today());
 
   return (
-    <FormField label="Date">
+    <FormField label={label}>
       {(control) => (
         <div className="day-picker">
           <button

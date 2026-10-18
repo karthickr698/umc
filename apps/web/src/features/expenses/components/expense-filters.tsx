@@ -1,11 +1,11 @@
 import { EXPENSE_CATEGORIES } from '@umc/shared';
-import { DateRangeFilter } from '@/components/filters/date-range-filter';
+import { dateRangeChip, presentChips, selectChip } from '@/components/filters/filter-chips';
 import { FilterPanel } from '@/components/filters/filter-panel';
-import { FilterSelect } from '@/components/filters/filter-select';
 import { staticOptions } from '@/components/filters/static-options';
 import type { SelectOptionsSource } from '@/hooks/use-select-options';
 import { enumOptions } from '@/lib/select-options';
 import type { ExpenseFilters as Filters } from '../hooks/use-expense-filters';
+import { ExpenseFilterFields } from './expense-filter-fields';
 
 const CATEGORIES = staticOptions(enumOptions(EXPENSE_CATEGORIES));
 
@@ -24,23 +24,27 @@ export function ExpenseFilters({
   onChange,
   onReset,
 }: ExpenseFiltersProps) {
+  const chips = presentChips<keyof Filters>(
+    dateRangeChip(filters),
+    selectChip('siteId', 'Site', filters.siteId, sites),
+    selectChip('category', 'Spent on', filters.category, CATEGORIES),
+  );
+
   return (
-    <FilterPanel activeCount={activeCount} onReset={onReset}>
-      <DateRangeFilter value={{ from: filters.from, to: filters.to }} onChange={onChange} />
-      <FilterSelect
-        label="Site"
-        allLabel="All sites"
-        value={filters.siteId}
-        source={sites}
-        onChange={(siteId) => onChange({ siteId })}
-      />
-      <FilterSelect
-        label="Spent on"
-        allLabel="Everything"
-        value={filters.category}
-        source={CATEGORIES}
-        onChange={(category) => onChange({ category })}
-      />
-    </FilterPanel>
+    <FilterPanel
+      filters={filters}
+      activeCount={activeCount}
+      chips={chips}
+      onChange={onChange}
+      onReset={onReset}
+      renderFields={(values, change) => (
+        <ExpenseFilterFields
+          filters={values}
+          sites={sites}
+          categories={CATEGORIES}
+          onChange={change}
+        />
+      )}
+    />
   );
 }

@@ -17,9 +17,18 @@ const AMOUNT_COLUMNS: readonly { key: keyof SiteFinancialTotals; label: string }
   { key: 'balance', label: 'Balance' },
 ];
 
+/** Leads each card on phones, so a site's standing shows at a glance. */
+const ASIDE_COLUMN: keyof SiteFinancialTotals = 'balance';
+
 function AmountCells({ totals }: { totals: SiteFinancialTotals }) {
-  return AMOUNT_COLUMNS.map(({ key }) => (
-    <td key={key} className="table__numeric">
+  return AMOUNT_COLUMNS.map(({ key, label }) => (
+    <td
+      key={key}
+      className="table__numeric"
+      data-label={label}
+      data-mobile={key === ASIDE_COLUMN ? 'aside' : undefined}
+      data-caption={key === ASIDE_COLUMN || undefined}
+    >
       <ReportAmount value={totals[key]} />
     </td>
   ));
@@ -29,9 +38,9 @@ export function SiteReportTable({ result, loading, filtered }: SiteReportTablePr
   const { sites, totals } = result;
 
   return (
-    <div className="card table-card" aria-busy={loading}>
+    <div className="card table-card table-card--stacked" aria-busy={loading}>
       <div className="table-scroll">
-        <table className="table">
+        <table className="table table--stacked">
           <thead>
             <tr>
               <th scope="col">Site</th>
@@ -45,7 +54,7 @@ export function SiteReportTable({ result, loading, filtered }: SiteReportTablePr
           <tbody>
             {sites.map((row) => (
               <tr key={row.siteId ?? 'none'}>
-                <td>
+                <td data-label="Site" data-mobile="title">
                   {row.siteId ? (row.siteName ?? 'Unknown site') : 'Not tied to a site'}
                   {row.siteCode && <span className="table__secondary">{row.siteCode}</span>}
                 </td>
@@ -56,7 +65,9 @@ export function SiteReportTable({ result, loading, filtered }: SiteReportTablePr
           {sites.length > 0 && (
             <tfoot>
               <tr>
-                <th scope="row">Total ({totals.siteCount} sites)</th>
+                <th scope="row" data-mobile="title">
+                  Total ({totals.siteCount} sites)
+                </th>
                 <AmountCells totals={totals} />
               </tr>
             </tfoot>

@@ -156,6 +156,33 @@
   color: #fff;
 }
 
+/* Avatar */
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.avatar--small {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.75rem;
+}
+
+.avatar--muted {
+  background: var(--color-surface-muted);
+  color: var(--color-muted);
+}
+
 /* Cards */
 
 .card {

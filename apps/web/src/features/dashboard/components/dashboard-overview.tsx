@@ -25,24 +25,30 @@ export function DashboardOverview({ description }: DashboardOverviewProps) {
       title="Dashboard"
       description={description}
       actions={
-        <button type="button" className="button" onClick={summary.retry} disabled={summary.loading}>
+        <button
+          type="button"
+          className="button button--icon-on-mobile"
+          onClick={summary.retry}
+          disabled={summary.loading}
+          title="Refresh"
+        >
           <RefreshCw
             className={summary.loading ? 'spinner__icon' : undefined}
             size={16}
             aria-hidden
           />
-          Refresh
+          <span className="button__label">Refresh</span>
         </button>
       }
     >
       <div className="dashboard">
-        <GettingStarted />
         <DashboardFilterPanel
           filters={filters}
           activeCount={activeCount}
           onChange={update}
           onReset={reset}
         />
+        <GettingStarted />
         <QueryResult query={summary} loading={<DashboardSkeleton />}>
           {(data) => (
             <div className="dashboard__content" aria-busy={summary.loading}>

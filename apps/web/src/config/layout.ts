@@ -6,4 +6,5 @@ export const TABLET_MEDIA_QUERY = '(min-width: 48rem)';
 
 export const STORAGE_KEYS = {
   sidebarCollapsed: 'umc:sidebar-collapsed',
+  sharedFilters: 'umc:shared-filters',
 } as const;

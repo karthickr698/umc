@@ -31,3 +31,17 @@ export function addDays(date: Date, days: number): Date {
 export function addMonths(date: Date, months: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + months, 1);
 }
+
+const RELATIVE_DAYS: Readonly<Record<number, string>> = {
+  [-1]: 'Yesterday',
+  0: 'Today',
+  1: 'Tomorrow',
+};
+
+/** "Yesterday", "Today" or "Tomorrow" for a `YYYY-MM-DD` day close to today; else `undefined`. */
+export function relativeDayLabel(day: string): string | undefined {
+  for (const [offset, label] of Object.entries(RELATIVE_DAYS)) {
+    if (toCalendarDate(addDays(today(), Number(offset))) === day) return label;
+  }
+  return undefined;
+}

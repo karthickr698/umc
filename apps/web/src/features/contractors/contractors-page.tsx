@@ -1,61 +1,53 @@
 import { HardHat } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
 import { CONTRACTOR_STATUSES, type ContractorDto } from '@umc/shared';
 import { ContactCell } from '@/components/data/contact-cell';
 import type { DataTableColumn } from '@/components/data/data-table';
 import { StatusBadge } from '@/components/data/status-badge';
-import { InlineAlert } from '@/components/feedback/inline-alert';
-import { Drawer } from '@/components/layout/drawer';
 import { ResourceListPage } from '@/components/pages/resource-list-page';
-import { contractorWorkersPath } from '@/config/routes';
 import { useCan } from '@/hooks/use-can';
 import { RESOURCE_API } from '@/lib/resource-api';
 import { humanizeEnum } from '@/utils/format';
-import { ContractorEmployeeForm } from './components/contractor-employee-form';
+import { ContractorDetails } from './components/contractor-details';
 import { ContractorForm } from './components/contractor-form';
 import { ContractorWorkerActions } from './components/contractor-worker-actions';
+import { ContractorWorkersDrawer } from './components/contractor-workers-drawer';
+import { ContractorWorkersContext } from './lib/contractor-workers-context';
 
 const STATUSES = Object.values(CONTRACTOR_STATUSES);
 
 interface WorkerColumnOptions {
-  /** Whether names link to, and a column offers, the contractor's workers. */
-  showWorkers: boolean;
+  /** Absent when the user may not view workers; hides the workers column. */
+  onViewWorkers?: (contractor: ContractorDto) => void;
   /** Absent when the user may not add workers. */
   onAddWorker?: (contractor: ContractorDto) => void;
 }
 
 function contractorColumns({
-  showWorkers,
+  onViewWorkers,
   onAddWorker,
 }: WorkerColumnOptions): DataTableColumn<ContractorDto>[] {
   return [
-    {
-      id: 'name',
-      header: 'Contractor',
-      render: (contractor) =>
-        showWorkers ? (
-          <Link className="text-link" to={contractorWorkersPath(contractor.id)}>
-            {contractor.name}
-          </Link>
-        ) : (
-          contractor.name
-        ),
-    },
+    { id: 'name', header: 'Contractor', render: (contractor) => contractor.name },
     { id: 'category', header: 'Trade', render: (contractor) => humanizeEnum(contractor.category) },
     { id: 'contact', header: 'Contact', render: (contractor) => <ContactCell {...contractor} /> },
     {
       id: 'status',
       header: 'Status',
+      mobile: 'aside',
       render: (contractor) => <StatusBadge status={contractor.status} />,
     },
-    ...(showWorkers
+    ...(onViewWorkers
       ? [
           {
             id: 'workers',
             header: 'Workers',
             render: (contractor: ContractorDto) => (
-              <ContractorWorkerActions contractor={contractor} onAddWorker={onAddWorker} />
+              <ContractorWorkerActions
+                contractor={contractor}
+                onViewWorkers={onViewWorkers}
+                onAddWorker={onAddWorker}
+              />
             ),
           },
         ]
@@ -63,34 +55,43 @@ function contractorColumns({
   ];
 }
 
+interface WorkersPanel {
+  contractor: ContractorDto;
+  startAdding: boolean;
+}
+
 export function ContractorsPage() {
   const canManage = useCan('manageContractors');
   const canViewWorkers = useCan('viewContractorEmployees');
   const canManageWorkers = useCan('manageContractorEmployees');
-  const [addingTo, setAddingTo] = useState<ContractorDto | null>(null);
-  const [addedNotice, setAddedNotice] = useState<string | null>(null);
+  const [workersPanel, setWorkersPanel] = useState<WorkersPanel | null>(null);
+
+  const openWorkers = useMemo(
+    () =>
+      canViewWorkers
+        ? (contractor: ContractorDto) => setWorkersPanel({ contractor, startAdding: false })
+        : null,
+    [canViewWorkers],
+  );
 
   const columns = useMemo(
     () =>
       contractorColumns({
-        showWorkers: canViewWorkers,
+        onViewWorkers: openWorkers ?? undefined,
         onAddWorker: canManageWorkers
-          ? (contractor) => {
-              setAddedNotice(null);
-              setAddingTo(contractor);
-            }
+          ? (contractor) => setWorkersPanel({ contractor, startAdding: true })
           : undefined,
       }),
-    [canViewWorkers, canManageWorkers],
+    [openWorkers, canManageWorkers],
   );
 
   return (
-    <>
+    <ContractorWorkersContext.Provider value={openWorkers}>
       <ResourceListPage<ContractorDto>
         title="Contractors"
         description={
           canViewWorkers
-            ? 'Trade contractors; view or add the workers they supply.'
+            ? 'Trade contractors and the workers they send to your sites.'
             : 'Trade contractors and their contact details.'
         }
         noun="contractor"
@@ -107,33 +108,17 @@ export function ContractorsPage() {
             'Contractors are outside teams, like an electrician or plumber, who send their own workers to your sites.',
         }}
         Form={ContractorForm}
-        banner={
-          addedNotice && (
-            <InlineAlert tone="success" title="Done" onDismiss={() => setAddedNotice(null)}>
-              {addedNotice}
-            </InlineAlert>
-          )
-        }
+        Details={ContractorDetails}
       />
 
-      <Drawer
-        open={addingTo !== null}
-        title="Add worker"
-        description={addingTo?.name}
-        onClose={() => setAddingTo(null)}
-      >
-        {addingTo && (
-          <ContractorEmployeeForm
-            key={addingTo.id}
-            contractorId={addingTo.id}
-            onSaved={(worker) => {
-              setAddedNotice(`Added worker "${worker.name}" to ${addingTo.name}.`);
-              setAddingTo(null);
-            }}
-            onCancel={() => setAddingTo(null)}
-          />
-        )}
-      </Drawer>
-    </>
+      {workersPanel && (
+        <ContractorWorkersDrawer
+          key={workersPanel.contractor.id}
+          contractor={workersPanel.contractor}
+          startAdding={workersPanel.startAdding}
+          onClose={() => setWorkersPanel(null)}
+        />
+      )}
+    </ContractorWorkersContext.Provider>
   );
 }

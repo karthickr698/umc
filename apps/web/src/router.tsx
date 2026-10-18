@@ -69,27 +69,9 @@ const recordRoutes: RouteObject[] = [
       {
         path: APP_ROUTES.contractors,
         handle: { breadcrumb: 'Contractors' } satisfies RouteHandle,
-        children: [
-          {
-            index: true,
-            lazy: async () => ({
-              Component: (await import('@/features/contractors/contractors-page')).ContractorsPage,
-            }),
-          },
-          {
-            element: <RequireAccess access="viewContractorEmployees" />,
-            children: [
-              {
-                path: APP_ROUTES.contractorWorkers,
-                handle: { breadcrumb: 'Workers' } satisfies RouteHandle,
-                lazy: async () => ({
-                  Component: (await import('@/features/contractors/contractor-workers-page'))
-                    .ContractorWorkersPage,
-                }),
-              },
-            ],
-          },
-        ],
+        lazy: async () => ({
+          Component: (await import('@/features/contractors/contractors-page')).ContractorsPage,
+        }),
       },
     ],
   },

@@ -67,9 +67,9 @@ function CompanyDetail({ company }: { company: AdminCompanyDetailDto }) {
           <h2 id="company-users-title" className="section-title">
             Users
           </h2>
-          <div className="card table-card">
+          <div className="card table-card table-card--stacked">
             <div className="table-scroll">
-              <table className="table">
+              <table className="table table--stacked">
                 <thead>
                   <tr>
                     <th scope="col">Name</th>
@@ -82,11 +82,13 @@ function CompanyDetail({ company }: { company: AdminCompanyDetailDto }) {
                 <tbody>
                   {company.users.map((user) => (
                     <tr key={user.id}>
-                      <td>{user.name}</td>
-                      <td>{user.email}</td>
-                      <td>{user.phone ?? '—'}</td>
-                      <td>{humanizeEnum(user.role)}</td>
-                      <td>
+                      <td data-label="Name" data-mobile="title">
+                        {user.name}
+                      </td>
+                      <td data-label="Email">{user.email}</td>
+                      <td data-label="Phone">{user.phone ?? '—'}</td>
+                      <td data-label="Role">{humanizeEnum(user.role)}</td>
+                      <td data-label="Status" data-mobile="aside">
                         <StatusBadge status={user.status} />
                       </td>
                     </tr>

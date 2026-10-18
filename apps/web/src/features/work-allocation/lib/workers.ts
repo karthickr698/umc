@@ -54,6 +54,11 @@ export function toWorkers(
   return workers.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** `E-012 · Mason`, or `C-004 · Contractor worker` for contractor employees. */
+export function workerDescription(worker: AllocationWorker): string {
+  return `${worker.code} · ${worker.role ?? 'Contractor worker'}`;
+}
+
 /** Case-insensitive match on name, code or role; an empty query matches everyone. */
 export function matchesWorker(worker: AllocationWorker, query: string): boolean {
   const needle = query.trim().toLowerCase();

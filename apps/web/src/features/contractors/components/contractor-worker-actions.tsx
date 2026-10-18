@@ -1,26 +1,30 @@
-import { Link } from 'react-router';
 import { UserPlus, Users } from 'lucide-react';
 import type { ContractorDto } from '@umc/shared';
-import { contractorWorkersPath } from '@/config/routes';
 
 export interface ContractorWorkerActionsProps {
   contractor: ContractorDto;
+  onViewWorkers: (contractor: ContractorDto) => void;
   /** Absent when the user may only view workers. */
   onAddWorker?: (contractor: ContractorDto) => void;
 }
 
-/** Opens a contractor's workers page, or adds a worker to it without leaving the list. */
-export function ContractorWorkerActions({ contractor, onAddWorker }: ContractorWorkerActionsProps) {
+/** Opens a contractor's workers panel, or its add-worker form, without leaving the list. */
+export function ContractorWorkerActions({
+  contractor,
+  onViewWorkers,
+  onAddWorker,
+}: ContractorWorkerActionsProps) {
   return (
     <div className="row-actions">
-      <Link
+      <button
+        type="button"
         className="button button--small"
-        to={contractorWorkersPath(contractor.id)}
         title={`View workers of ${contractor.name}`}
+        onClick={() => onViewWorkers(contractor)}
       >
         <Users size={14} aria-hidden />
-        View workers
-      </Link>
+        Workers
+      </button>
       {onAddWorker && (
         <button
           type="button"

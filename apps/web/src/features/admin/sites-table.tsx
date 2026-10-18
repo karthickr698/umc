@@ -15,9 +15,9 @@ export interface SitesTableProps {
 
 export function SitesTable({ result, loading, onPageChange, showCompany = true }: SitesTableProps) {
   return (
-    <div className="card table-card" aria-busy={loading}>
+    <div className="card table-card table-card--stacked" aria-busy={loading}>
       <div className="table-scroll">
-        <table className="table">
+        <table className="table table--stacked">
           <thead>
             <tr>
               <th scope="col">Site</th>
@@ -30,24 +30,24 @@ export function SitesTable({ result, loading, onPageChange, showCompany = true }
           <tbody>
             {result.items.map((site) => (
               <tr key={site.id}>
-                <td>
+                <td data-label="Site" data-mobile="title">
                   <Link className="text-link" to={adminSitePath(site.id)}>
                     {site.name}
                   </Link>
                   <span className="table__secondary">{site.code}</span>
                 </td>
                 {showCompany && (
-                  <td>
+                  <td data-label="Company">
                     <Link className="text-link" to={adminCompanyPath(site.companyId)}>
                       {site.companyName}
                     </Link>
                   </td>
                 )}
-                <td>{site.clientName}</td>
-                <td>
+                <td data-label="Client">{site.clientName}</td>
+                <td data-label="Status" data-mobile="aside">
                   <StatusBadge status={site.status} />
                 </td>
-                <td>{site.startDate ? formatDate(site.startDate) : '—'}</td>
+                <td data-label="Start date">{site.startDate ? formatDate(site.startDate) : '—'}</td>
               </tr>
             ))}
           </tbody>

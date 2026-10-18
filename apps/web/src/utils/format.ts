@@ -1,3 +1,4 @@
+import type { Address } from '@umc/shared';
 import { parseCalendarDate } from './calendar-date';
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
@@ -54,6 +55,31 @@ export function formatCompactAmount(amount: number): string {
 }
 
 export { formatAddress } from '@umc/shared';
+
+/** `City, State Postal code`, or an empty string when none of them is set. */
+export function addressLocality(address: Address | undefined): string {
+  if (!address) return '';
+  const { city, state, postalCode } = address;
+  return [city, [state, postalCode].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+}
+
+/** An address as postal lines: street lines, then "City, State Postal code", then country. */
+export function addressLines(address: Address | undefined): string[] {
+  if (!address) return [];
+  const { line1, line2, country } = address;
+  return [line1, line2, addressLocality(address), country].filter((line): line is string =>
+    Boolean(line),
+  );
+}
+
+/** `Asha Builders` → `AB`; for avatars. */
+export function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return words
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('');
+}
 
 /** Shortens `text` to at most `max` characters, ending in an ellipsis when cut. */
 export function truncate(text: string, max: number): string {

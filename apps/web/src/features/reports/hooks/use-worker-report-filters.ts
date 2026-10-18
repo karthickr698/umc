@@ -25,7 +25,7 @@ export type WorkerReportFilters = Record<WorkerReportFilterKey, string>;
  * Own employees have no contractor, so picking an employee clears the contractor filters and
  * vice versa. A new contractor also clears a contractor employee it may not supply.
  */
-function withConsistentWorkers(
+export function withConsistentWorkers(
   changes: Partial<WorkerReportFilters>,
 ): Partial<WorkerReportFilters> {
   if (changes.employeeId) return { ...changes, contractorId: '', contractorEmployeeId: '' };

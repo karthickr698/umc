@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import type { DashboardSummaryQuery } from '@umc/shared';
 import { useUrlFilters } from '@/hooks/use-url-filters';
+import { clearSiteOnClientChange } from '@/lib/filter-rules';
 
 const FILTER_KEYS = [
   'from',
@@ -22,6 +23,8 @@ function toQuery(filters: DashboardFilters): DashboardSummaryQuery {
   return Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== ''));
 }
 
+export const normalizeDashboardChanges = clearSiteOnClientChange<DashboardFilters>;
+
 /** Dashboard filters kept in the URL, so a filtered view can be bookmarked or shared. */
 export function useDashboardFilters() {
   const { filters, activeCount, update, reset } = useUrlFilters(FILTER_KEYS, {
@@ -30,14 +33,7 @@ export function useDashboardFilters() {
   const query = useMemo(() => toQuery(filters), [filters]);
 
   const updateFilters = useCallback(
-    (changes: Partial<DashboardFilters>) => {
-      // A site belongs to one client, so switching client drops a site that may not match.
-      update(
-        changes.clientId !== undefined && changes.siteId === undefined
-          ? { ...changes, siteId: '' }
-          : changes,
-      );
-    },
+    (changes: Partial<DashboardFilters>) => update(normalizeDashboardChanges(changes)),
     [update],
   );
 

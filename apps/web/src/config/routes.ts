@@ -7,7 +7,6 @@ export const APP_ROUTES = {
   clients: '/clients',
   employees: '/employees',
   contractors: '/contractors',
-  contractorWorkers: '/contractors/:contractorId',
   workAllocation: '/work-allocation',
   workSchedule: '/work-schedule',
   payments: '/payments',
@@ -23,8 +22,11 @@ export const APP_ROUTES = {
   adminSiteDetail: '/admin/sites/:siteId',
 } as const;
 
-export function contractorWorkersPath(contractorId: string): string {
-  return APP_ROUTES.contractorWorkers.replace(':contractorId', encodeURIComponent(contractorId));
+/** Query parameter that opens a list page's "add" form, e.g. `/expenses?new`. */
+export const CREATE_RECORD_PARAM = 'new';
+
+export function createRecordPath(listPath: string): string {
+  return `${listPath}?${CREATE_RECORD_PARAM}`;
 }
 
 export function adminCompanyPath(companyId: string): string {

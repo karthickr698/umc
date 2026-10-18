@@ -39,6 +39,15 @@ function toQuery(filters: PaymentHistoryFilters, page: number): PaymentHistoryQu
   };
 }
 
+/** The worker list narrows to the chosen contractor, so a previous pick may no longer fit. */
+export function normalizePaymentHistoryChanges(
+  changes: Partial<PaymentHistoryFilters>,
+): Partial<PaymentHistoryFilters> {
+  return changes.contractorId !== undefined && changes.worker === undefined
+    ? { ...changes, worker: '' }
+    : changes;
+}
+
 /** Payment history filters and page, kept in the URL; filtering happens on the server. */
 export function usePaymentHistoryFilters() {
   const { filters, activeCount, update, reset, page, setPage } = useUrlFilters(FILTER_KEYS, {
@@ -47,14 +56,7 @@ export function usePaymentHistoryFilters() {
   const query = useMemo(() => toQuery(filters, page), [filters, page]);
 
   const updateFilters = useCallback(
-    (changes: Partial<PaymentHistoryFilters>) => {
-      // The worker list narrows to the chosen contractor, so a previous pick may no longer fit.
-      update(
-        changes.contractorId !== undefined && changes.worker === undefined
-          ? { ...changes, worker: '' }
-          : changes,
-      );
-    },
+    (changes: Partial<PaymentHistoryFilters>) => update(normalizePaymentHistoryChanges(changes)),
     [update],
   );
 

@@ -1,51 +1,31 @@
-import type { ReactNode } from 'react';
-import type { AllocationWorker } from '../lib/workers';
+import { Avatar } from '@/components/data/avatar';
+import { workerDescription, type AllocationWorker } from '../lib/workers';
 
 export interface WorkerOptionProps {
   worker: AllocationWorker;
   selected: boolean;
   onToggle: () => void;
-  /** Where the worker already works that day; the worker can't be picked again. */
-  assignedTo?: string;
-  /** Extra control for an assigned worker, e.g. "Move here". */
-  action?: ReactNode;
   disabled?: boolean;
 }
 
-export function WorkerOption({
-  worker,
-  selected,
-  onToggle,
-  assignedTo,
-  action,
-  disabled = false,
-}: WorkerOptionProps) {
-  const classes = [
-    'worker-option',
-    selected && 'worker-option--selected',
-    assignedTo && 'worker-option--assigned',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
+/** A free worker; the whole row toggles the checkbox. */
+export function WorkerOption({ worker, selected, onToggle, disabled = false }: WorkerOptionProps) {
   return (
-    <li className={classes}>
-      <label className="worker-option__label">
+    <li>
+      <label className={`crew-option${selected ? ' crew-option--selected' : ''}`}>
         <input
           type="checkbox"
+          className="crew-option__check"
           checked={selected}
-          disabled={disabled || assignedTo !== undefined}
+          disabled={disabled}
           onChange={onToggle}
         />
-        <span className="worker-option__text">
-          <span className="worker-option__name">{worker.name}</span>
-          <span className="worker-option__meta">
-            {worker.code} · {worker.role ?? 'Contractor worker'}
-          </span>
+        <Avatar name={worker.name} />
+        <span className="crew-option__text">
+          <span className="crew-option__name">{worker.name}</span>
+          <span className="crew-option__meta">{workerDescription(worker)}</span>
         </span>
       </label>
-      {assignedTo && <span className="badge badge--warn worker-option__site">{assignedTo}</span>}
-      {action}
     </li>
   );
 }

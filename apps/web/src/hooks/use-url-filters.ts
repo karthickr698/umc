@@ -1,7 +1,9 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import { PAGINATION } from '@umc/shared';
+import { clearSharedFilters, isSharedFilterKey, setSharedFilters } from '@/lib/shared-filters';
 import { isCalendarDate } from '@/utils/calendar-date';
+import { useSharedFilters } from './use-shared-filters';
 
 const PAGE_KEY = 'page';
 const NO_KEYS: readonly never[] = [];
@@ -28,28 +30,43 @@ function readPage(searchParams: URLSearchParams): number {
 /**
  * String filters and the list page kept in the URL, so a filtered view can be bookmarked or
  * shared. An empty string means "not filtered"; changing any filter returns to the first page.
- * Pass `keys` and `dateKeys` as stable (module-level) arrays.
+ * Shared keys (see `SHARED_FILTER_KEYS`) missing from the URL fall back to the filters picked on
+ * other pages, and every change to them is shared in turn. Clearing all filters clears the shared
+ * ones too. Pass `keys` and `dateKeys` as stable (module-level) arrays.
  */
 export function useUrlFilters<K extends string>(
   keys: readonly K[],
   { dateKeys = NO_KEYS }: UrlFilterOptions<K> = {},
 ) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const shared = useSharedFilters();
 
   const filters = useMemo(() => {
     const entries = keys.map((key) => {
-      const value = searchParams.get(key)?.trim() ?? '';
+      const fallback = isSharedFilterKey(key) ? shared[key] : undefined;
+      const value = (searchParams.get(key) ?? fallback ?? '').trim();
       // Hand-edited URLs with malformed dates fall back to "no limit" instead of failing requests.
       return [key, dateKeys.includes(key) && !isCalendarDate(value) ? '' : value];
     });
     return Object.fromEntries(entries) as Record<K, string>;
-  }, [searchParams, keys, dateKeys]);
+  }, [searchParams, shared, keys, dateKeys]);
+
+  // A shared link or the back button can bring filters in the URL; other pages follow them.
+  useEffect(() => {
+    const fromUrl: Record<string, string> = {};
+    for (const key of keys) {
+      const value = searchParams.get(key);
+      if (value !== null && isSharedFilterKey(key)) fromUrl[key] = value;
+    }
+    setSharedFilters(fromUrl);
+  }, [searchParams, keys]);
 
   const activeCount = keys.filter((key) => filters[key] !== '').length;
   const page = readPage(searchParams);
 
   const update = useCallback(
     (changes: Partial<Record<K, string>>) => {
+      setSharedFilters(changes);
       setSearchParams(
         (current) => {
           const next = new URLSearchParams(current);
@@ -67,6 +84,7 @@ export function useUrlFilters<K extends string>(
   );
 
   const reset = useCallback(() => {
+    clearSharedFilters();
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);

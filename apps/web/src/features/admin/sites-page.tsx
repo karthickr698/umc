@@ -23,7 +23,6 @@ export function SitesPage() {
     <PageContainer title="All sites" description="Construction sites across every company.">
       <div className="stack">
         <ListFilters
-          key={params.search}
           params={params}
           statuses={STATUSES}
           searchLabel="Site name or code"

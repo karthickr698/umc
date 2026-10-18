@@ -27,6 +27,7 @@ function paymentColumns(clientNames: Names, siteNames: Names): DataTableColumn<C
     {
       id: 'client',
       header: 'From',
+      mobile: 'title',
       render: (payment) => (
         <StackedCell
           primary={clientNames.get(payment.clientId) ?? '—'}
@@ -48,6 +49,7 @@ function paymentColumns(clientNames: Names, siteNames: Names): DataTableColumn<C
       id: 'amount',
       header: 'Amount',
       numeric: true,
+      mobile: 'aside',
       render: (payment) => <strong>{formatAmount(payment.amount)}</strong>,
     },
   ];
@@ -60,7 +62,6 @@ export function ClientPaymentsPage() {
     RESOURCE_API.clientPayments.list({ ...query, page }),
   );
   const clients = useClientOptions();
-  const sites = useSiteOptions(filters.clientId || undefined);
   const allSites = useSiteOptions();
   const clientNames = useOptionLabels(clients);
   const siteNames = useOptionLabels(allSites);
@@ -83,7 +84,6 @@ export function ClientPaymentsPage() {
             filters={filters}
             activeCount={activeCount}
             clients={clients}
-            sites={sites}
             onChange={update}
             onReset={reset}
           />

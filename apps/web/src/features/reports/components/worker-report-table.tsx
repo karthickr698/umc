@@ -1,6 +1,7 @@
 import {
   WORKER_TYPE_LABELS,
   type WorkerFinancialReportDto,
+  type WorkerFinancialTotals,
   type WorkerSummaryListItem,
 } from '@umc/shared';
 import { Pagination } from '@/components/data/pagination';
@@ -16,25 +17,38 @@ export interface WorkerReportTableProps {
 
 const MISSING = '—';
 
+/** Work days and money columns, shared by each worker's row and the totals row. */
+function TotalCells({ totals }: { totals: WorkerFinancialTotals }) {
+  return (
+    <>
+      <td className="table__numeric" data-label="Work days">
+        {totals.assignedDays}
+      </td>
+      <td className="table__numeric" data-label="Earned">
+        <Amount value={totals.earnedAmount} />
+      </td>
+      <td className="table__numeric" data-label="Paid">
+        <Amount value={totals.paidAmount} />
+      </td>
+      <td className="table__numeric" data-label="Outstanding" data-mobile="aside" data-caption>
+        <Amount value={totals.outstandingAmount} />
+      </td>
+    </>
+  );
+}
+
 function WorkerReportRow({ item: { worker, totals } }: { item: WorkerSummaryListItem }) {
   return (
     <tr>
-      <td>
+      <td data-label="Worker" data-mobile="title">
         {worker.name || 'Unknown worker'}
         {worker.employeeCode && <span className="table__secondary">{worker.employeeCode}</span>}
       </td>
-      <td>{WORKER_TYPE_LABELS[worker.workerType]}</td>
-      <td>{worker.contractorId ? (worker.contractorName ?? 'Unknown contractor') : MISSING}</td>
-      <td className="table__numeric">{totals.assignedDays}</td>
-      <td className="table__numeric">
-        <Amount value={totals.earnedAmount} />
+      <td data-label="Type">{WORKER_TYPE_LABELS[worker.workerType]}</td>
+      <td data-label="Contractor">
+        {worker.contractorId ? (worker.contractorName ?? 'Unknown contractor') : MISSING}
       </td>
-      <td className="table__numeric">
-        <Amount value={totals.paidAmount} />
-      </td>
-      <td className="table__numeric">
-        <Amount value={totals.outstandingAmount} />
-      </td>
+      <TotalCells totals={totals} />
     </tr>
   );
 }
@@ -48,9 +62,9 @@ export function WorkerReportTable({
   const { totals } = result;
 
   return (
-    <div className="card table-card" aria-busy={loading}>
+    <div className="card table-card table-card--stacked" aria-busy={loading}>
       <div className="table-scroll">
-        <table className="table">
+        <table className="table table--stacked">
           <thead>
             <tr>
               <th scope="col">Worker</th>
@@ -81,19 +95,10 @@ export function WorkerReportTable({
           {result.items.length > 0 && (
             <tfoot>
               <tr>
-                <th scope="row" colSpan={3}>
+                <th scope="row" colSpan={3} data-mobile="title">
                   Total ({totals.workerCount} workers)
                 </th>
-                <td className="table__numeric">{totals.assignedDays}</td>
-                <td className="table__numeric">
-                  <Amount value={totals.earnedAmount} />
-                </td>
-                <td className="table__numeric">
-                  <Amount value={totals.paidAmount} />
-                </td>
-                <td className="table__numeric">
-                  <Amount value={totals.outstandingAmount} />
-                </td>
+                <TotalCells totals={totals} />
               </tr>
             </tfoot>
           )}

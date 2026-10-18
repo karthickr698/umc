@@ -8,7 +8,8 @@ import { ResourceListPage } from '@/components/pages/resource-list-page';
 import { useCan } from '@/hooks/use-can';
 import { RESOURCE_API } from '@/lib/resource-api';
 import { siteLabel, siteStartDay } from '@/lib/sites';
-import { formatCalendarDate } from '@/utils/format';
+import { addressLocality, formatCalendarDate } from '@/utils/format';
+import { SiteDetails } from './components/site-details';
 import { SiteForm } from './components/site-form';
 import { useClientOptions, useOptionLabels } from '@/hooks/use-record-options';
 
@@ -22,7 +23,17 @@ function siteColumns(clientNames: ReadonlyMap<string, string>): DataTableColumn<
       render: (site) => <StackedCell primary={site.name} secondary={site.code} />,
     },
     { id: 'client', header: 'Client', render: (site) => clientNames.get(site.clientId) ?? '—' },
-    { id: 'status', header: 'Status', render: (site) => <StatusBadge status={site.status} /> },
+    {
+      id: 'location',
+      header: 'Location',
+      render: (site) => addressLocality(site.address) || '—',
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      mobile: 'aside',
+      render: (site) => <StatusBadge status={site.status} />,
+    },
     {
       id: 'startDate',
       header: 'Start date',
@@ -46,7 +57,7 @@ export function SitesPage() {
       noun="site"
       api={RESOURCE_API.sites}
       statuses={STATUSES}
-      searchLabel="Site name or code"
+      searchLabel="Name or code"
       columns={columns}
       canManage={canManage}
       itemName={siteLabel}
@@ -57,6 +68,7 @@ export function SitesPage() {
           'A site is a construction project for one of your clients. Work, payments and expenses are all recorded against a site.',
       }}
       Form={SiteForm}
+      Details={SiteDetails}
     />
   );
 }

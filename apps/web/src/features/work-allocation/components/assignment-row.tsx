@@ -1,7 +1,8 @@
-import { Trash2 } from 'lucide-react';
 import { WORK_ASSIGNMENT_STATUSES, type WorkAssignmentDto } from '@umc/shared';
+import { Avatar } from '@/components/data/avatar';
 import { StatusBadge } from '@/components/data/status-badge';
 import { Spinner } from '@/components/feedback/spinner';
+import { ConfirmButton } from '@/components/forms/confirm-button';
 import { Select, type SelectOption } from '@/components/forms/select';
 import type { BoardAssignment } from '../lib/daily-board';
 
@@ -26,27 +27,31 @@ export function AssignmentRow({
   const name = worker?.name ?? 'Unknown worker';
   const canManage = moveTargets !== undefined;
   const removable = assignment.status !== WORK_ASSIGNMENT_STATUSES.COMPLETED;
+  const canMove = canManage && active && moveTargets.length > 0;
 
   return (
     <li className={`assignment-row${active ? '' : ' assignment-row--inactive'}`}>
+      <Avatar name={name} size="small" muted={!active} />
       <div className="assignment-row__worker">
-        <span className="assignment-row__name">{name}</span>
+        <span className="assignment-row__name" title={name}>
+          {name}
+        </span>
         <span className="assignment-row__meta">
-          {worker ? `${worker.code} · ` : ''}
-          {assignment.workType}
+          <span className="assignment-row__work-type">{assignment.workType}</span>
+          {worker && <span className="assignment-row__code">{worker.code}</span>}
+          {assignment.status !== WORK_ASSIGNMENT_STATUSES.SCHEDULED && (
+            <StatusBadge status={assignment.status} />
+          )}
         </span>
       </div>
-      {assignment.status !== WORK_ASSIGNMENT_STATUSES.SCHEDULED && (
-        <StatusBadge status={assignment.status} />
-      )}
       {canManage && (
         <div className="assignment-row__actions">
           {pending && <Spinner size={16} label="Saving" />}
-          {active && moveTargets.length > 0 && (
+          {canMove && (
             <Select
-              className="select__trigger--compact"
+              className="select__trigger--compact assignment-row__move"
               aria-label={`Move ${name} to another site`}
-              placeholder="Move to…"
+              placeholder="Move"
               required
               value=""
               options={moveTargets}
@@ -55,16 +60,16 @@ export function AssignmentRow({
             />
           )}
           {removable && (
-            <button
-              type="button"
-              className="icon-button assignment-row__remove"
+            <ConfirmButton
+              className="button--small assignment-row__remove"
+              label=""
+              confirmLabel="Remove?"
               aria-label={`Remove ${name} from this site`}
-              title="Remove"
-              disabled={pending}
-              onClick={() => onRemove(assignment)}
-            >
-              <Trash2 size={16} aria-hidden />
-            </button>
+              title="Remove from this site"
+              pending={pending}
+              pendingLabel="Removing"
+              onConfirm={() => onRemove(assignment)}
+            />
           )}
         </div>
       )}

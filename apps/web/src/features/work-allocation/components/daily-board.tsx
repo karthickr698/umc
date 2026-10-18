@@ -29,8 +29,12 @@ export function DailyBoard({
       <EmptyState
         compact
         icon={CalendarX2}
-        title="No one is assigned yet"
-        message="Workers you assign for this day will appear here, grouped by site."
+        title="No assignments for this day"
+        message={
+          siteOptions
+            ? 'Create a new assignment: select a site and workers, then press Assign. They will show up here.'
+            : 'Assigned workers will show up here, grouped by site.'
+        }
       />
     );
   }

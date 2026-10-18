@@ -3,19 +3,17 @@ import type { WorkAssignmentDto } from '@umc/shared';
 import { QueryResult } from '@/components/data/query-result';
 import { SectionCard } from '@/components/layout/section-card';
 import type { ApiQuery } from '@/hooks/use-api-query';
-import { formatCalendarDate } from '@/utils/format';
+import { toSiteOptions } from '@/lib/sites';
 import { useAllocationActions } from '../hooks/use-allocation-actions';
 import type { AllocationReference } from '../hooks/use-allocation-data';
 import type { AllocationParams } from '../hooks/use-allocation-params';
 import { groupBySite, occupiedWorkers } from '../lib/daily-board';
-import { workerCount } from '../lib/notices';
-import { toSiteOptions } from '@/lib/sites';
 import { workTypeSuggestions } from '../lib/work-types';
 import { AllocationNoticeAlert } from './allocation-notice-alert';
 import { AssignPanel } from './assign-panel';
 import { DailyBoard } from './daily-board';
 import { DailyBoardSkeleton } from './daily-board-skeleton';
-import { DayPicker } from './day-picker';
+import { DayBar, type DayStat } from './day-bar';
 
 export interface AllocationWorkspaceProps {
   params: AllocationParams;
@@ -36,6 +34,10 @@ export function AllocationWorkspace({
   const assignments = daily.data;
 
   const occupied = useMemo(() => assignments && occupiedWorkers(assignments), [assignments]);
+  const groups = useMemo(
+    () => assignments && groupBySite(assignments, reference.sitesById, reference.workersByKey),
+    [assignments, reference.sitesById, reference.workersByKey],
+  );
   const suggestions = useMemo(
     () => workTypeSuggestions(reference.workers, assignments ?? []),
     [reference.workers, assignments],
@@ -44,19 +46,30 @@ export function AllocationWorkspace({
     () => toSiteOptions(reference.assignableSites),
     [reference.assignableSites],
   );
+  const sites = useMemo(
+    () => [...reference.assignableSites].sort((a, b) => a.name.localeCompare(b.name)),
+    [reference.assignableSites],
+  );
+  const assignedCounts = useMemo(
+    () => groups && new Map(groups.map((group) => [group.siteId, group.activeCount])),
+    [groups],
+  );
   // A stale or hand-edited URL may name a site that can't take workers.
   const siteId = siteOptions.some((option) => option.value === params.siteId) ? params.siteId : '';
 
-  const freeCount = occupied
-    ? reference.workers.filter((worker) => worker.active && !occupied.has(worker.key)).length
-    : undefined;
-  const summary =
-    occupied && freeCount !== undefined
-      ? `${workerCount(occupied.size)} assigned · ${freeCount} still free`
-      : undefined;
+  const freeCount =
+    occupied &&
+    reference.workers.filter((worker) => worker.active && !occupied.has(worker.key)).length;
+  const stats: DayStat[] = [
+    { label: 'Assigned', value: occupied?.size, tone: 'ok' },
+    { label: 'Still free', value: freeCount, tone: freeCount ? 'warn' : undefined },
+    { label: 'Sites in use', value: groups?.filter((group) => group.activeCount > 0).length },
+  ];
 
   return (
     <div className="stack">
+      <DayBar date={date} onDateChange={setDate} stats={stats} />
+
       {actions.notice && (
         <AllocationNoticeAlert notice={actions.notice} onDismiss={actions.dismissNotice} />
       )}
@@ -66,9 +79,9 @@ export function AllocationWorkspace({
           <AssignPanel
             date={date}
             siteId={siteId}
-            onDateChange={setDate}
             onSiteChange={setSiteId}
-            siteOptions={siteOptions}
+            sites={sites}
+            assignedCounts={assignedCounts}
             reference={reference}
             occupied={occupied}
             workTypeSuggestions={suggestions}
@@ -82,16 +95,15 @@ export function AllocationWorkspace({
         )}
 
         <SectionCard
-          title={`Assignments · ${formatCalendarDate(date)}`}
-          description={summary}
+          title="Assigned workers"
+          description="Everyone working on this day, grouped by site."
           busy={daily.loading}
-          actions={canManage ? undefined : <DayPicker value={date} onChange={setDate} />}
           className="allocation__board"
         >
           <QueryResult query={daily} loading={<DailyBoardSkeleton />}>
-            {(list) => (
+            {() => (
               <DailyBoard
-                groups={groupBySite(list, reference.sitesById, reference.workersByKey)}
+                groups={groups ?? []}
                 currentSiteId={siteId}
                 siteOptions={canManage ? siteOptions : undefined}
                 pendingIds={actions.pendingIds}

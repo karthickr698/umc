@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import type { ClientPaymentFilterQuery } from '@umc/shared';
 import { useUrlFilters } from '@/hooks/use-url-filters';
+import { clearSiteOnClientChange } from '@/lib/filter-rules';
 import { isPaymentMode } from '@/lib/payment-modes';
 
 const FILTER_KEYS = ['from', 'to', 'clientId', 'siteId', 'paymentMode'] as const;
@@ -10,6 +11,8 @@ export type ClientPaymentFilterKey = (typeof FILTER_KEYS)[number];
 
 /** Every filter as a string; an empty string means "not filtered". */
 export type ClientPaymentFilters = Record<ClientPaymentFilterKey, string>;
+
+export const normalizeClientPaymentChanges = clearSiteOnClientChange<ClientPaymentFilters>;
 
 function toQuery(filters: ClientPaymentFilters): ClientPaymentFilterQuery {
   const { from, to, clientId, siteId, paymentMode } = filters;
@@ -30,14 +33,7 @@ export function useClientPaymentFilters() {
   const query = useMemo(() => toQuery(filters), [filters]);
 
   const updateFilters = useCallback(
-    (changes: Partial<ClientPaymentFilters>) => {
-      // A site belongs to one client, so switching client drops a site that may not match.
-      update(
-        changes.clientId !== undefined && changes.siteId === undefined
-          ? { ...changes, siteId: '' }
-          : changes,
-      );
-    },
+    (changes: Partial<ClientPaymentFilters>) => update(normalizeClientPaymentChanges(changes)),
     [update],
   );
 

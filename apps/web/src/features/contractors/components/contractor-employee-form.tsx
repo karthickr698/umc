@@ -1,4 +1,3 @@
-import { useParams } from 'react-router';
 import {
   CONTRACTOR_EMPLOYEE_STATUSES,
   FIELD_LIMITS,
@@ -24,8 +23,8 @@ import {
 const STATUS_OPTIONS = enumOptions(CONTRACTOR_EMPLOYEE_STATUSES);
 
 export interface ContractorEmployeeFormProps extends ResourceFormProps<ContractorEmployeeDto> {
-  /** Contractor new workers belong to; defaults to the one in the URL (its workers page). */
-  contractorId?: string;
+  /** Contractor new workers belong to. */
+  contractorId: string;
 }
 
 export function ContractorEmployeeForm({
@@ -34,13 +33,12 @@ export function ContractorEmployeeForm({
   onSaved,
   onCancel,
 }: ContractorEmployeeFormProps) {
-  const { contractorId: routeContractorId = '' } = useParams();
   const contractors = useAllPagesSelectOptions<ContractorDto>(
     RESOURCE_API.contractors.base,
     namedOption,
   );
   const form = useEntityForm({
-    initial: toContractorEmployeeDraft(contractorId ?? routeContractorId, worker),
+    initial: toContractorEmployeeDraft(contractorId, worker),
     validate: validateContractorEmployeeDraft,
     submit: (draft) =>
       worker
